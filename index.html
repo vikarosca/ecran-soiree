@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Écran de soirée — Universal DJ Normandie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+/* =========================================================
+   ÉCRAN DE SOIRÉE — Universal DJ Normandie
+   Un seul fichier, trois vues :
+     ?v=ecran&e=CODE    → écran géant (vidéoprojecteur / TV)
+     ?v=invite&e=CODE   → page invités (QR code)
+     ?v=console&e=CODE  → console DJ (modération, modes, quiz)
+   ========================================================= */
+:root{
+  --navy:#0a0f1a; --navy2:#121a2b; --navy3:#1b2539; --line:#2a3550;
+  --gold:#c8a96e; --gold2:#e0c891; --ink:#f4efe6; --muted:#8f98ab;
+  --ok:#4fb47a; --no:#d9605a; --serif:'Cormorant Garamond',Georgia,serif;
+  --mono:'Courier New',Courier,monospace; --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--navy);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}
+a{color:var(--gold)}
+.label{font-family:var(--mono);letter-spacing:.18em;text-transform:uppercase;font-size:12px;color:var(--gold)}
+.demo-banner{background:#3a2a10;color:#f3d9a4;font-size:13px;padding:8px 14px;text-align:center}
+.err-banner{position:fixed;left:12px;bottom:12px;z-index:99;background:#5a1d1d;color:#fff;padding:8px 12px;border-radius:8px;font-size:13px;max-width:90vw;display:none}
+
+/* ---------- Boutons / champs ---------- */
+.btn{border:1px solid var(--line);background:var(--navy3);padding:10px 16px;border-radius:10px;cursor:pointer;transition:.15s}
+.btn:hover{border-color:var(--gold)}
+.btn.gold{background:var(--gold);color:var(--navy);border-color:var(--gold);font-weight:600}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.no{background:transparent;border-color:var(--no);color:var(--no)}
+.btn.sm{padding:6px 10px;font-size:13px;border-radius:8px}
+.btn.active{background:var(--gold);color:var(--navy);border-color:var(--gold);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field span{font-size:13px;color:var(--muted)}
+.field input,.field textarea,.field select{background:var(--navy);border:1px solid var(--line);border-radius:10px;padding:11px 12px;outline:none}
+.field input:focus,.field textarea:focus{border-color:var(--gold)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.card{background:var(--navy2);border:1px solid var(--line);border-radius:14px;padding:18px}
+
+/* ---------- Accueil (choix de la vue) ---------- */
+.home{max-width:640px;margin:0 auto;padding:40px 16px}
+.home h1{font-family:var(--serif);font-weight:500;font-size:44px;margin:8px 0 6px}
+.home .views{display:grid;gap:12px;margin-top:22px}
+.home .views a{display:block;text-decoration:none;color:var(--ink)}
+.home .views a b{color:var(--gold)}
+.home p{color:var(--muted);line-height:1.55}
+
+/* =================== ÉCRAN GÉANT =================== */
+.screen{position:fixed;inset:0;overflow:hidden;background:radial-gradient(ellipse at 50% 35%,#16213a 0%,var(--navy) 70%);cursor:none}
+.screen.showcursor{cursor:default}
+#stage{position:absolute;inset:0}
+.slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .9s ease}
+.slide.in{opacity:1}
+.slide.out{opacity:0}
+/* accueil */
+.welcome{text-align:center;padding:4vh 6vw}
+.welcome .sub{font-family:var(--mono);letter-spacing:.35em;text-transform:uppercase;color:var(--accent,var(--gold));font-size:1.6vw}
+.welcome .names{font-family:var(--serif);font-weight:500;font-size:10vw;line-height:1.02;margin:2.5vh 0;color:var(--ink)}
+.welcome .names .amp{color:var(--accent,var(--gold));font-style:italic}
+.welcome .date{font-family:var(--serif);font-style:italic;font-size:3vw;color:var(--muted)}
+.welcome .orn{width:18vw;height:1px;background:linear-gradient(90deg,transparent,var(--accent,var(--gold)),transparent);margin:3vh auto}
+.welcome .cd{margin-top:4vh}
+.welcome .cd .cdlab{font-family:var(--mono);letter-spacing:.25em;text-transform:uppercase;color:var(--muted);font-size:1.3vw}
+.welcome .cd .cdval{font-family:var(--serif);font-size:7vw;color:var(--accent,var(--gold));font-variant-numeric:tabular-nums;line-height:1.1}
+/* photo */
+.ph-bg{position:absolute;inset:-40px;background-size:cover;background-position:center;filter:blur(40px) brightness(.45);transform:scale(1.1)}
+.ph-main{position:relative;max-width:92vw;max-height:84vh;border-radius:6px;box-shadow:0 30px 80px rgba(0,0,0,.6);animation:kb 12s ease-out both}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.04)}}
+.ph-cap{position:absolute;left:0;right:0;bottom:4vh;text-align:center;font-family:var(--serif);font-size:2.6vw;text-shadow:0 2px 12px rgba(0,0,0,.8)}
+.ph-cap small{display:block;font-family:var(--mono);font-size:1.1vw;letter-spacing:.25em;text-transform:uppercase;color:var(--accent,var(--gold));margin-top:.6vh}
+/* message */
+.msg{max-width:78vw;text-align:center}
+.msg .q{font-family:var(--serif);font-size:16vw;line-height:.6;color:var(--accent,var(--gold));opacity:.5;height:7vw}
+.msg .t{font-family:var(--serif);font-style:italic;line-height:1.2}
+.msg .t.s{font-size:6vw}.msg .t.m{font-size:4.4vw}.msg .t.l{font-size:3.2vw}
+.msg .a{margin-top:4vh;font-family:var(--mono);letter-spacing:.25em;text-transform:uppercase;color:var(--accent,var(--gold));font-size:1.4vw}
+/* quiz */
+.quiz{width:min(80vw,1400px)}
+.quiz h2{font-family:var(--serif);font-weight:500;text-align:center;font-size:5vw;margin:0 0 4vh}
+.qrow{display:grid;grid-template-columns:5vw 1fr 8vw;align-items:center;gap:1.5vw;margin:1.2vh 0;font-size:2.4vw}
+.qrow .rk{font-family:var(--serif);color:var(--muted);text-align:right}
+.qrow.r1 .rk{color:var(--accent,var(--gold))}
+.qbar{position:relative;height:5.4vh;background:rgba(255,255,255,.05);border-radius:8px;overflow:hidden}
+.qbar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,rgba(200,169,110,.35),var(--accent,var(--gold)));border-radius:8px;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.qbar span{position:absolute;left:1.2vw;top:50%;transform:translateY(-50%);font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+.qrow .sc{font-family:var(--serif);font-size:3vw;font-variant-numeric:tabular-nums}
+/* noir */
+.noir{position:absolute;inset:0;background:#000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4vh;font-family:var(--serif);color:#333;font-size:1.6vw}
+/* QR permanent */
+.qrbox{position:absolute;right:2.2vw;bottom:2.6vh;display:flex;align-items:center;gap:1vw;background:rgba(10,15,26,.78);border:1px solid rgba(200,169,110,.35);border-radius:14px;padding:.9vw;backdrop-filter:blur(6px);transition:opacity .6s}
+.qrbox .qr{background:#fff;padding:.4vw;border-radius:6px;line-height:0}
+.qrbox .qr img,.qrbox .qr canvas{width:7.5vw!important;height:7.5vw!important}
+.qrbox .qt{font-family:var(--mono);font-size:.95vw;letter-spacing:.15em;text-transform:uppercase;color:var(--gold2);line-height:1.6;max-width:11vw}
+.qrbox.hide{opacity:0}
+.fs-hint{position:absolute;top:2vh;left:50%;transform:translateX(-50%);font-size:14px;color:var(--muted);background:rgba(0,0,0,.4);padding:6px 12px;border-radius:20px;transition:opacity 1s}
+
+/* =================== PAGE INVITÉS =================== */
+.guest{max-width:520px;margin:0 auto;padding:28px 16px 60px}
+.guest .hd{text-align:center;margin-bottom:22px}
+.guest .hd .names{font-family:var(--serif);font-size:40px;line-height:1.1;margin:8px 0 4px}
+.guest .hd .names .amp{color:var(--gold);font-style:italic}
+.guest .hd .date{color:var(--muted);font-family:var(--serif);font-style:italic;font-size:18px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:18px 0}
+.tabs .btn{padding:14px}
+.pick{display:block;border:2px dashed var(--line);border-radius:14px;padding:30px 16px;text-align:center;cursor:pointer;color:var(--muted)}
+.pick:hover{border-color:var(--gold)}
+.pick b{display:block;color:var(--ink);font-size:18px;margin-bottom:4px}
+.thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.thumbs img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px}
+.thanks{text-align:center;padding:24px 10px;color:var(--gold2);font-family:var(--serif);font-size:22px}
+.counter{text-align:right;font-size:12px;color:var(--muted);margin-top:-8px}
+
+/* =================== CONSOLE DJ =================== */
+.console{max-width:1100px;margin:0 auto;padding:18px 16px 60px}
+.c-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.c-top h1{font-family:var(--serif);font-weight:500;font-size:28px;margin:0}
+.c-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;border-bottom:1px solid var(--line);padding-bottom:12px}
+.c-tabs .btn .n{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:10px;background:var(--no);color:#fff;font-size:12px}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.modes .btn{padding:18px 10px;font-size:16px}
+.modes .btn small{display:block;font-size:12px;opacity:.7;margin-top:4px;font-weight:400}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.tile{background:var(--navy2);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.tile .im{aspect-ratio:4/3;background:#000 center/cover no-repeat}
+.tile .meta{padding:8px 10px;font-size:13px;color:var(--muted);min-height:36px}
+.tile .meta b{color:var(--ink)}
+.tile .act{display:flex;gap:6px;padding:0 10px 10px;flex-wrap:wrap}
+.mlist{display:grid;gap:10px}
+.mitem{display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--navy2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.mitem p{margin:0;font-family:var(--serif);font-size:19px;font-style:italic}
+.mitem small{color:var(--muted)}
+.team{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;background:var(--navy2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:8px}
+.team .sc{font-family:var(--serif);font-size:28px;min-width:50px;text-align:right}
+h3.sec{font-family:var(--serif);font-weight:500;font-size:22px;margin:24px 0 12px}
+.empty{color:var(--muted);font-style:italic;padding:8px 0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:700px){.two{grid-template-columns:1fr}}
+.toggle{display:flex;align-items:center;gap:10px;margin:10px 0;cursor:pointer}
+.toggle input{width:20px;height:20px;accent-color:var(--gold)}
+.linkbox{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.linkbox .qr{background:#fff;padding:8px;border-radius:8px;line-height:0}
+.linkbox code{word-break:break-all;font-size:13px;color:var(--gold2)}
+.pin{max-width:320px;margin:15vh auto;text-align:center;padding:0 16px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="err-banner" id="err"></div>
+
+<script>
+/* =========================================================
+   1. CONFIGURATION — à remplir avant la mise en ligne
+   ---------------------------------------------------------
+   Laisse projectId vide pour tester en MODE DÉMO (local,
+   onglets du même navigateur uniquement).
+   ========================================================= */
+const CONFIG = {
+  firebase: {
+    projectId: 'ecran-soiree-udn',
+    apiKey: 'AIzaSyBPhKfh2FRLKP2VgKm-xQJyakiztx4mj8Y'   // clé Web publique (normal qu'elle soit visible)
+  },
+  pinConsole: '1234',  // code d'accès à la console DJ ('' = pas de code)
+  pollMs: 3000,        // fréquence de synchro écran/console (ms)
+  brand: 'Universal DJ Normandie'
+};
+
+/* =========================================================
+   2. OUTILS
+   ========================================================= */
+const params = new URLSearchParams(location.search);
+const VIEW  = params.get('v') || 'home';
+const EVENT = (params.get('e') || 'demo').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40) || 'demo';
+const DEMO  = !CONFIG.firebase.projectId;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const viewUrl = v => location.origin + location.pathname + '?v=' + v + '&e=' + encodeURIComponent(EVENT);
+
+function showError(msg) {
+  const el = $('#err'); el.textContent = msg; el.style.display = 'block';
+  clearTimeout(showError.t); showError.t = setTimeout(() => el.style.display = 'none', 6000);
+}
+function fmtDate(d) {
+  if (!d) return '';
+  const x = new Date(d + 'T12:00:00');
+  return isNaN(x) ? d : x.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+function namesHtml(n) {
+  return esc(n || 'Les mariés').replace(/\s*(&amp;|et)\s*/i, ' <span class="amp">&amp;</span> ');
+}
+function makeQR(el, text, size) {
+  el.innerHTML = '';
+  if (window.QRCode) new QRCode(el, { text, width: size, height: size, colorDark: '#0a0f1a', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+  else el.innerHTML = '<span style="color:#000;font-size:11px;line-height:1.2">QR indisponible (hors ligne)</span>';
+}
+
+/* Compression d'image côté téléphone (Firestore limite un document à 1 Mo) */
+async function compressImage(file) {
+  const maxSide = DEMO ? 900 : 1600;
+  let bmp;
+  try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+  catch (e) {
+    bmp = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
+  }
+  const w0 = bmp.width, h0 = bmp.height;
+  let scale = Math.min(1, maxSide / Math.max(w0, h0)), q = DEMO ? 0.65 : 0.8, out = '';
+  for (let i = 0; i < 6; i++) {
+    const c = document.createElement('canvas');
+    c.width = Math.round(w0 * scale); c.height = Math.round(h0 * scale);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    out = c.toDataURL('image/jpeg', q);
+    if (out.length < (DEMO ? 250000 : 850000)) break;
+    scale *= 0.8; q = Math.max(0.5, q - 0.07);
+  }
+  return out;
+}
+
+/* =========================================================
+   3. STOCKAGE — même interface pour Firestore (REST) et démo
+   ---------------------------------------------------------
+   Collections (sous ecran/{EVENT}/) :
+     settings/main  photos  photoData  messages  teams  meta/rev
+   Chaque écriture met à jour le champ "mt" (heure serveur) et
+   incrémente un compteur dans meta/rev → les écrans ne lisent
+   qu'1 document par cycle tant que rien ne change (quota gratuit).
+   ========================================================= */
+function FirestoreStore(projectId, apiKey) {
+  const API = 'https://firestore.googleapis.com/v1/';
+  const DB = `projects/${projectId}/databases/(default)/documents`;
+  const ROOT = `${DB}/ecran/${EVENT}`;
+  const enc = v => v === null || v === undefined ? { nullValue: null }
+    : typeof v === 'boolean' ? { booleanValue: v }
+    : typeof v === 'number' ? (Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v })
+    : { stringValue: String(v) };
+  const dec = f => 'stringValue' in f ? f.stringValue : 'integerValue' in f ? Number(f.integerValue)
+    : 'doubleValue' in f ? f.doubleValue : 'booleanValue' in f ? f.booleanValue
+    : 'timestampValue' in f ? Date.parse(f.timestampValue) : null;
+  const fields = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, enc(v)]));
+  const fromDoc = d => { const o = { id: d.name.split('/').pop() }; for (const [k, v] of Object.entries(d.fields || {})) o[k] = dec(v); return o; };
+  async function req(method, path, body) {
+    const r = await fetch(API + path + (path.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(apiKey), {
+      method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined
+    });
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error('Firestore ' + r.status + ' : ' + (await r.text()).slice(0, 160));
+    const t = await r.text(); return t ? JSON.parse(t) : null;
+  }
+  const revWrite = coll => ({
+    update: { name: `${ROOT}/meta/rev`, fields: {} }, updateMask: { fieldPaths: [] },
+    updateTransforms: [{ fieldPath: coll, increment: { integerValue: '1' } }]
+  });
+  return {
+    async write(coll, id, data, merge = false, bump = true) {
+      const w = { update: { name: `${ROOT}/${coll}/${id}`, fields: fields(data) },
+                  updateTransforms: [{ fieldPath: 'mt', setToServerValue: 'REQUEST_TIME' }] };
+      if (merge) w.updateMask = { fieldPaths: Object.keys(data) };
+      const writes = [w]; if (bump) writes.push(revWrite(coll));
+      await req('POST', `${DB}:commit`, { writes });
+    },
+    async increment(coll, id, field, n) {
+      await req('POST', `${DB}:commit`, { writes: [{
+        update: { name: `${ROOT}/${coll}/${id}`, fields: {} }, updateMask: { fieldPaths: [] },
+        updateTransforms: [{ fieldPath: field, increment: { integerValue: String(n) } },
+                           { fieldPath: 'mt', setToServerValue: 'REQUEST_TIME' }]
+      }, revWrite(coll)] });
+    },
+    async get(coll, id) { const d = await req('GET', `${ROOT}/${coll}/${id}`); return d ? fromDoc(d) : null; },
+    async remove(coll, id) { await req('DELETE', `${ROOT}/${coll}/${id}`); },
+    async getRev() { const d = await req('GET', `${ROOT}/meta/rev`); return d ? fromDoc(d) : {}; },
+    async delta(coll, since) {
+      const out = []; let s = since;
+      for (let page = 0; page < 20; page++) {
+        const q = { from: [{ collectionId: coll }], orderBy: [{ field: { fieldPath: 'mt' }, direction: 'ASCENDING' }], limit: 300 };
+        if (s > 0) q.where = { fieldFilter: { field: { fieldPath: 'mt' }, op: 'GREATER_THAN', value: { timestampValue: new Date(s).toISOString() } } };
+        const res = await req('POST', `${ROOT}:runQuery`, { structuredQuery: q });
+        const docs = (res || []).filter(x => x.document).map(x => fromDoc(x.document));
+        out.push(...docs);
+        if (docs.length < 300) break;
+        s = docs[docs.length - 1].mt;
+      }
+      return out;
+    }
+  };
+}
+
+function DemoStore() {
+  const MEM = {};
+  const key = c => `ecran:${EVENT}:${c}`;
+  const read = c => { try { return JSON.parse(localStorage.getItem(key(c)) || '{}'); } catch (e) { return MEM[c] || {}; } };
+  const save = (c, o) => {
+    try { localStorage.setItem(key(c), JSON.stringify(o)); }
+    catch (e) { if (/quota/i.test(e.name + e.message)) throw new Error('Mode démo : stockage du navigateur plein. Videz la démo depuis la console.'); MEM[c] = o; }
+  };
+  let last = 0; const now = () => (last = Math.max(Date.now(), last + 1));
+  const bumpRev = c => { const r = read('_rev'); r[c] = (r[c] || 0) + 1; save('_rev', r); };
+  return {
+    async write(c, id, data, merge = false, bump = true) {
+      const o = read(c); o[id] = Object.assign(merge ? (o[id] || {}) : {}, data, { mt: now() }); save(c, o); if (bump) bumpRev(c);
+    },
+    async increment(c, id, field, n) {
+      const o = read(c); const d = o[id] || {}; d[field] = (d[field] || 0) + n; d.mt = now(); o[id] = d; save(c, o); bumpRev(c);
+    },
+    async get(c, id) { const d = read(c)[id]; return d ? { ...d, id } : null; },
+    async remove(c, id) { const o = read(c); delete o[id]; save(c, o); },
+    async getRev() { return read('_rev'); },
+    async delta(c, since) { return Object.entries(read(c)).filter(([, d]) => (d.mt || 0) > since).map(([id, d]) => ({ ...d, id })); },
+    wipe() { ['settings', 'photos', 'photoData', 'messages', 'teams', '_rev'].forEach(c => { try { localStorage.removeItem(key(c)); } catch (e) {} }); }
+  };
+}
+
+const store = DEMO ? DemoStore() : FirestoreStore(CONFIG.firebase.projectId, CONFIG.firebase.apiKey);
+
+/* ---------- Synchronisation incrémentale ---------- */
+const cache = { settings: {}, photos: {}, messages: {}, teams: {} };
+const lastRev = {}, lastMt = {};
+async function syncOnce(colls) {
+  const rev = await store.getRev();
+  const changed = [];
+  for (const c of colls) {
+    const r = rev[c] || 0;
+    if (lastRev[c] === r) continue;
+    const since = lastMt[c] ? lastMt[c] - 15000 : 0;   // 15 s de recouvrement (horloges)
+    const docs = await store.delta(c, since);
+    for (const d of docs) { cache[c][d.id] = d; if ((d.mt || 0) > (lastMt[c] || 0)) lastMt[c] = d.mt; }
+    lastRev[c] = r; changed.push(c);
+  }
+  return changed;
+}
+function startSync(colls, onChange) {
+  let failures = 0;
+  (async function loop() {
+    try { const ch = await syncOnce(colls); failures = 0; if (ch.length) onChange(ch); }
+    catch (e) { failures++; if (failures === 1 || failures % 10 === 0) showError('Synchro : ' + e.message); }
+    setTimeout(loop, CONFIG.pollMs);
+  })();
+  if (DEMO) window.addEventListener('storage', () => syncOnce(colls).then(ch => ch.length && onChange(ch)).catch(() => {}));
+}
+const S = () => Object.assign({
+  names: 'Julie & Thomas', subtitle: 'Bienvenue à notre mariage', date: '', countdownTo: '', countdownLabel: 'Ouverture du bal',
+  mode: 'auto', moderation: true, slideSec: 8, showQr: true, quizAuto: false, accent: '#c8a96e', pinned: '', pinnedAt: 0
+}, cache.settings.main || {});
+const live = (coll, status) => Object.values(cache[coll]).filter(d => d.status === status).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+
+const photoCache = new Map();
+async function photoSrc(id) {
+  if (photoCache.has(id)) return photoCache.get(id);
+  const p = store.get('photoData', id).then(d => d && d.data || null).catch(() => null);
+  photoCache.set(id, p);
+  const v = await p; if (!v) photoCache.delete(id);
+  return v;
+}
+const saveSettings = patch => store.write('settings', 'main', patch, true);
+
+/* =========================================================
+   4. VUE : ACCUEIL (choix)
+   ========================================================= */
+function viewHome() {
+  $('#app').innerHTML = `
+  ${DEMO ? '<div class="demo-banner">Mode démo : les données restent dans ce navigateur. Ouvre les 3 vues dans des onglets pour tester.</div>' : ''}
+  <div class="home">
+    <div class="label">${esc(CONFIG.brand)}</div>
+    <h1>Écran de soirée</h1>
+    <p>Un code par événement (ex. <code>mariage-julie-thomas-2026</code>). Les trois vues partagent ce code.</p>
+    <div class="field"><span>Code de l'événement</span><input id="ev" value="${esc(EVENT)}"></div>
+    <div class="views">
+      <a class="card" id="l-ecran"><b>Écran géant →</b><br><small>À ouvrir sur l'ordinateur relié au vidéoprojecteur, en plein écran.</small></a>
+      <a class="card" id="l-console"><b>Console DJ →</b><br><small>Modération, choix de ce qui s'affiche, scores du quiz. Fonctionne sur téléphone.</small></a>
+      <a class="card" id="l-invite"><b>Page invités →</b><br><small>Ce que les invités voient après avoir scanné le QR code.</small></a>
+    </div>
+  </div>`;
+  const upd = () => {
+    const e = ($('#ev').value || 'demo').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    ['ecran', 'console', 'invite'].forEach(v => $('#l-' + v).href = location.pathname + '?v=' + v + '&e=' + e);
+  };
+  $('#ev').addEventListener('input', upd); upd();
+}
+
+/* =========================================================
+   5. VUE : ÉCRAN GÉANT
+   ========================================================= */
+function viewScreen() {
+  document.title = 'Écran — ' + EVENT;
+  $('#app').innerHTML = `
+  <div class="screen" id="scr">
+    <div id="stage"></div>
+    <div class="qrbox" id="qrbox"><div class="qr" id="qr"></div><div class="qt">Partagez vos photos &amp; vos mots</div></div>
+    <div class="fs-hint" id="hint">Clic ou touche F : plein écran · → : suivant</div>
+  </div>`;
+  makeQR($('#qr'), viewUrl('invite'), 200);
+  const scr = $('#scr'), stage = $('#stage');
+  setTimeout(() => $('#hint').style.opacity = 0, 5000);
+  const fs = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {}); };
+  scr.addEventListener('click', fs);
+  let mv; scr.addEventListener('mousemove', () => { scr.classList.add('showcursor'); clearTimeout(mv); mv = setTimeout(() => scr.classList.remove('showcursor'), 2000); });
+  document.addEventListener('keydown', e => { if (e.key === 'f' || e.key === 'F') fs(); if (e.key === 'ArrowRight') advance(); });
+  // Garde l'écran allumé
+  const wake = () => navigator.wakeLock?.request('screen').catch(() => {});
+  wake(); document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && wake());
+
+  let cur = null, timer = null, shown = new Set(), cycleIdx = -1, sinceWelcome = 0, sinceQuiz = 0, seenPinnedAt = null, lastMode = null;
+
+  function pickNext() {
+    const s = S(), mode = s.mode;
+    if (seenPinnedAt === null) seenPinnedAt = s.pinnedAt || 0;               // ignore un ancien "afficher maintenant"
+    if (s.pinnedAt && s.pinnedAt !== seenPinnedAt && s.pinned) {
+      seenPinnedAt = s.pinnedAt;
+      const [t, id] = s.pinned.split(':'); const d = cache[t === 'photo' ? 'photos' : 'messages'][id];
+      if (d && d.status === 'ok') { shown.add(t + id); return { t, d }; }
+    }
+    if (['accueil', 'quiz', 'noir'].includes(mode)) return { t: mode };
+    const pool = [];
+    if (mode !== 'messages') pool.push(...live('photos', 'ok').map(d => ({ t: 'photo', d })));
+    if (mode !== 'photos') pool.push(...live('messages', 'ok').map(d => ({ t: 'message', d })));
+    pool.sort((a, b) => (a.d.ts || 0) - (b.d.ts || 0));
+    if (mode === 'auto') {
+      const teams = Object.values(cache.teams).filter(t => t.status !== 'del');
+      if (s.quizAuto && teams.length && sinceQuiz >= 10) { sinceQuiz = 0; return { t: 'quiz' }; }
+      if (!pool.length || sinceWelcome >= 8) { sinceWelcome = 0; return { t: 'accueil' }; }
+    }
+    if (!pool.length) return { t: 'accueil' };
+    const fresh = pool.filter(x => !shown.has(x.t + x.d.id));
+    let next;
+    if (fresh.length) next = fresh[0];
+    else { cycleIdx = (cycleIdx + 1) % pool.length; next = pool[cycleIdx]; }
+    if (cur && pool.length > 1 && cur.d && next.d && cur.d.id === next.d.id) { cycleIdx = (cycleIdx + 1) % pool.length; next = pool[cycleIdx]; }
+    shown.add(next.t + next.d.id); sinceWelcome++; sinceQuiz++;
+    return next;
+  }
+
+  function slideWelcome() {
+    const s = S(), el = document.createElement('div');
+    el.innerHTML = `<div class="welcome">
+      <div class="sub">${esc(s.subtitle)}</div>
+      <div class="names">${namesHtml(s.names)}</div>
+      ${s.date ? `<div class="date">${esc(fmtDate(s.date))}</div>` : ''}
+      <div class="orn"></div>
+      <div class="cd" id="cd"></div>
+    </div>`;
+    return el;
+  }
+  function slideQuiz() {
+    const teams = Object.values(cache.teams).filter(t => t.status !== 'del').sort((a, b) => (b.score || 0) - (a.score || 0));
+    const max = Math.max(1, ...teams.map(t => t.score || 0));
+    const el = document.createElement('div'); el.className = 'quiz';
+    el.innerHTML = `<h2>Quiz Party · Classement</h2>` + (teams.length ? teams.slice(0, 10).map((t, i) => `
+      <div class="qrow r${i + 1}"><div class="rk">${i + 1}</div>
+      <div class="qbar"><i style="width:${Math.max(4, (t.score || 0) / max * 100)}%"></i><span>${esc(t.name)}</span></div>
+      <div class="sc">${t.score || 0}</div></div>`).join('') : '<p style="text-align:center;color:var(--muted);font-size:2vw">Les équipes arrivent…</p>');
+    return el;
+  }
+  function slideMessage(d) {
+    const len = (d.text || '').length, el = document.createElement('div'); el.className = 'msg';
+    el.innerHTML = `<div class="q">“</div><div class="t ${len < 70 ? 's' : len < 160 ? 'm' : 'l'}">${esc(d.text)}</div>${d.author ? `<div class="a">— ${esc(d.author)}</div>` : ''}`;
+    return el;
+  }
+  async function slidePhoto(d) {
+    const src = await photoSrc(d.id); if (!src) return null;
+    const el = document.createElement('div'); el.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center';
+    const img = new Image(); img.className = 'ph-main'; img.src = src;
+    try { await img.decode(); } catch (e) {}
+    el.innerHTML = `<div class="ph-bg" style="background-image:url('${src}')"></div>`;
+    el.appendChild(img);
+    if (d.caption || d.author) {
+      const cap = document.createElement('div'); cap.className = 'ph-cap';
+      cap.innerHTML = `${esc(d.caption || '')}${d.author ? `<small>${esc(d.author)}</small>` : ''}`; el.appendChild(cap);
+    }
+    return el;
+  }
+
+  async function show(item) {
+    let content;
+    if (item.t === 'photo') content = await slidePhoto(item.d);
+    else if (item.t === 'message') content = slideMessage(item.d);
+    else if (item.t === 'quiz') content = slideQuiz();
+    else if (item.t === 'noir') { content = document.createElement('div'); content.className = 'noir'; content.textContent = S().names; }
+    else content = slideWelcome();
+    if (!content) return false;
+    const sl = document.createElement('div'); sl.className = 'slide'; sl.appendChild(content);
+    stage.querySelectorAll('.slide').forEach(o => { o.classList.remove('in'); o.classList.add('out'); setTimeout(() => o.remove(), 1000); });
+    stage.appendChild(sl); requestAnimationFrame(() => requestAnimationFrame(() => sl.classList.add('in')));
+    cur = item; tickCountdown();
+    $('#qrbox').classList.toggle('hide', !S().showQr || item.t === 'noir');
+    return true;
+  }
+
+  async function advance() {
+    clearTimeout(timer);
+    let item = pickNext(), ok = await show(item);
+    if (!ok) { item = { t: 'accueil' }; await show(item); }
+    const s = S(), base = Math.max(3, Number(s.slideSec) || 8) * 1000;
+    const dur = item.t === 'message' ? base + Math.min(6000, (item.d.text || '').length * 30)
+              : item.t === 'accueil' ? base * 1.5 : base;
+    lastMode = s.mode;
+    if (['accueil', 'quiz', 'noir'].includes(s.mode)) return;   // mode fixe : on attend un changement
+    timer = setTimeout(advance, dur);
+    // précharge la photo suivante probable
+    const nextPhoto = live('photos', 'ok').find(p => !shown.has('photo' + p.id)); if (nextPhoto) photoSrc(nextPhoto.id);
+  }
+
+  function tickCountdown() {
+    const el = document.getElementById('cd'); if (!el) return;
+    const s = S(); if (!s.countdownTo) { el.innerHTML = ''; return; }
+    const ms = new Date(s.countdownTo) - Date.now();
+    if (isNaN(ms) || ms < -60000) { el.innerHTML = ''; return; }
+    if (ms <= 0) { el.innerHTML = `<div class="cdval">C'est l'heure !</div><div class="cdlab">${esc(s.countdownLabel)}</div>`; return; }
+    const h = Math.floor(ms / 3.6e6), m = Math.floor(ms % 3.6e6 / 6e4), sec = Math.floor(ms % 6e4 / 1000), p = n => String(n).padStart(2, '0');
+    el.innerHTML = `<div class="cdlab">${esc(s.countdownLabel)} dans</div><div class="cdval">${h >= 24 ? Math.floor(h / 24) + ' j ' + (h % 24) + ' h' : (h ? h + ':' : '') + p(m) + ':' + p(sec)}</div>`;
+  }
+  setInterval(tickCountdown, 1000);
+
+  function applyAccent() { document.documentElement.style.setProperty('--accent', S().accent || '#c8a96e'); }
+
+  let started = false;
+  startSync(['settings', 'photos', 'messages', 'teams'], changed => {
+    applyAccent();
+    if (!started) { started = true; advance(); return; }
+    const s = S();
+    const pinnedNew = s.pinnedAt && seenPinnedAt !== null && s.pinnedAt !== seenPinnedAt;
+    if (changed.includes('settings') && (s.mode !== lastMode || pinnedNew)) { advance(); return; }
+    if (!cur) return;
+    if (cur.t === 'quiz' && changed.includes('teams')) {           // mise à jour du classement en place
+      const box = stage.querySelector('.slide.in'); if (box) { box.innerHTML = ''; box.appendChild(slideQuiz()); }
+    }
+    if ((cur.t === 'accueil' || cur.t === 'noir') && changed.includes('settings')) {
+      const box = stage.querySelector('.slide.in'); if (box) { box.innerHTML = ''; box.appendChild(cur.t === 'noir' ? Object.assign(document.createElement('div'), { className: 'noir', textContent: s.names }) : slideWelcome()); tickCountdown(); }
+    }
+    $('#qrbox').classList.toggle('hide', !s.showQr || cur.t === 'noir');
+    // en mode fixe "accueil" sans minuterie : un nouveau contenu ne doit pas interrompre
+  });
+  // Si aucune donnée au départ (événement vierge), afficher l'accueil quand même
+  setTimeout(() => { if (!started) { started = true; applyAccent(); advance(); } }, 2500);
+}
+
+/* =========================================================
+   6. VUE : PAGE INVITÉS
+   ========================================================= */
+function viewGuest() {
+  document.title = 'Partagez vos photos';
+  let tab = 'photo', files = [], busy = false, lastSend = 0;
+  const render = () => {
+    const s = S();
+    $('#app').innerHTML = `
+    ${DEMO ? '<div class="demo-banner">Mode démo</div>' : ''}
+    <div class="guest">
+      <div class="hd"><div class="label">${esc(s.subtitle)}</div>
+        <div class="names">${namesHtml(s.names)}</div>
+        ${s.date ? `<div class="date">${esc(fmtDate(s.date))}</div>` : ''}</div>
+      <div class="field"><span>Votre prénom (facultatif)</span><input id="author" maxlength="40" value="${esc(lsGet('ecran:author', ''))}" placeholder="ex. Tata Monique"></div>
+      <div class="tabs"><button class="btn ${tab === 'photo' ? 'active' : ''}" data-tab="photo">📷 Photo</button><button class="btn ${tab === 'message' ? 'active' : ''}" data-tab="message">💌 Petit mot</button></div>
+      <div id="pane"></div>
+    </div>`;
+    $('#author').addEventListener('change', e => lsSet('ecran:author', e.target.value.trim()));
+    document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; render(); });
+    tab === 'photo' ? panePhoto() : paneMessage();
+  };
+  const author = () => ($('#author')?.value || '').trim().slice(0, 40);
+  const thanks = what => {
+    const s = S();
+    $('#pane').innerHTML = `<div class="thanks">Merci ! ✨<br><small style="font-size:16px;color:var(--muted)">${s.moderation ? `Votre ${what} apparaîtra bientôt sur le grand écran.` : `Votre ${what} part sur le grand écran.`}</small></div>
+      <button class="btn gold" style="width:100%" id="again">Envoyer autre chose</button>`;
+    $('#again').onclick = () => { files = []; render(); };
+  };
+  function panePhoto() {
+    $('#pane').innerHTML = `
+      <label class="pick"><input type="file" id="file" accept="image/*" multiple hidden><b>Choisir ou prendre une photo</b>Jusqu'à 5 à la fois</label>
+      <div class="thumbs" id="thumbs"></div>
+      <div class="field"><span>Légende (facultatif)</span><input id="cap" maxlength="80" placeholder="ex. La plus belle des soirées !"></div>
+      <button class="btn gold" style="width:100%;padding:14px" id="send" disabled>Envoyer</button>
+      <div id="st" style="text-align:center;color:var(--muted);margin-top:10px;font-size:14px"></div>`;
+    $('#file').onchange = e => {
+      files = [...e.target.files].slice(0, 5);
+      $('#thumbs').innerHTML = files.map(f => `<img src="${URL.createObjectURL(f)}" alt="">`).join('');
+      $('#send').disabled = !files.length;
+    };
+    $('#send').onclick = async () => {
+      if (busy || !files.length) return;
+      busy = true; $('#send').disabled = true;
+      const s = S(), status = s.moderation ? 'pending' : 'ok';
+      try {
+        for (let i = 0; i < files.length; i++) {
+          $('#st').textContent = `Envoi ${i + 1}/${files.length}…`;
+          const data = await compressImage(files[i]), id = uid();
+          await store.write('photoData', id, { data }, false, false);   // l'image d'abord
+          await store.write('photos', id, { ts: Date.now(), author: author(), caption: ($('#cap').value || '').trim().slice(0, 80), status });
+        }
+        thanks(files.length > 1 ? 'photos' : 'photo');
+      } catch (e) { $('#st').textContent = 'Oups, envoi impossible : ' + e.message; $('#send').disabled = false; }
+      busy = false;
+    };
+  }
+  function paneMessage() {
+    $('#pane').innerHTML = `
+      <div class="field"><span>Votre message pour les mariés</span><textarea id="txt" rows="5" maxlength="240" placeholder="Tous nos vœux de bonheur !"></textarea></div>
+      <div class="counter" id="cnt">0/240</div>
+      <button class="btn gold" style="width:100%;padding:14px;margin-top:10px" id="send">Envoyer</button>
+      <div id="st" style="text-align:center;color:var(--muted);margin-top:10px;font-size:14px"></div>`;
+    $('#txt').oninput = e => $('#cnt').textContent = e.target.value.length + '/240';
+    $('#send').onclick = async () => {
+      const text = $('#txt').value.trim();
+      if (!text) return;
+      if (Date.now() - lastSend < 5000) { $('#st').textContent = 'Un instant…'; return; }
+      lastSend = Date.now(); $('#send').disabled = true;
+      try {
+        await store.write('messages', uid(), { ts: Date.now(), author: author(), text: text.slice(0, 240), status: S().moderation ? 'pending' : 'ok' });
+        thanks('message');
+      } catch (e) { $('#st').textContent = 'Oups : ' + e.message; $('#send').disabled = false; }
+    };
+  }
+  render();
+  syncOnce(['settings']).then(render).catch(e => showError(e.message));
+}
+
+/* =========================================================
+   7. VUE : CONSOLE DJ
+   ========================================================= */
+function viewConsole() {
+  document.title = 'Console — ' + EVENT;
+  const unlocked = () => !CONFIG.pinConsole || (() => { try { return sessionStorage.getItem('ecran:pin') === CONFIG.pinConsole; } catch (e) { return false; } })();
+  if (!unlocked() && !PIN_OK) {
+    $('#app').innerHTML = `<div class="pin"><div class="label">Console DJ</div><h2 style="font-family:var(--serif);font-weight:500">Code d'accès</h2>
+      <div class="field"><input id="pin" type="password" inputmode="numeric" autofocus style="text-align:center;font-size:22px"></div>
+      <button class="btn gold" id="go" style="width:100%">Entrer</button><p id="bad" style="color:var(--no)"></p></div>`;
+    const go = () => {
+      if ($('#pin').value === CONFIG.pinConsole) { try { sessionStorage.setItem('ecran:pin', CONFIG.pinConsole); } catch (e) {} PIN_OK = true; viewConsole(); }
+      else $('#bad').textContent = 'Code incorrect';
+    };
+    $('#go').onclick = go; $('#pin').onkeydown = e => e.key === 'Enter' && go();
+    return;
+  }
+  let tab = lsGet('ecran:ctab', 'mod');
+  const counts = () => ({ ph: live('photos', 'pending').length, ms: live('messages', 'pending').length });
+
+  function render() {
+    const s = S(), c = counts();
+    $('#app').innerHTML = `
+    ${DEMO ? '<div class="demo-banner">Mode démo — données locales à ce navigateur. <a href="#" id="wipe">Vider la démo</a></div>' : ''}
+    <div class="console">
+      <div class="c-top"><div><div class="label">Console DJ · ${esc(EVENT)}</div><h1>${namesHtml(s.names)}</h1></div>
+        <a class="btn sm" href="${viewUrl('ecran')}" target="_blank">Ouvrir l'écran ↗</a></div>
+      <div class="c-tabs">
+        <button class="btn sm ${tab === 'mod' ? 'active' : ''}" data-t="mod">Modération${c.ph + c.ms ? `<span class="n">${c.ph + c.ms}</span>` : ''}</button>
+        <button class="btn sm ${tab === 'ecran' ? 'active' : ''}" data-t="ecran">Écran</button>
+        <button class="btn sm ${tab === 'quiz' ? 'active' : ''}" data-t="quiz">Quiz</button>
+        <button class="btn sm ${tab === 'reg' ? 'active' : ''}" data-t="reg">Réglages</button>
+        <button class="btn sm ${tab === 'liens' ? 'active' : ''}" data-t="liens">Liens &amp; QR</button>
+      </div>
+      <div id="body"></div>
+    </div>`;
+    document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; lsSet('ecran:ctab', tab); render(); });
+    if ($('#wipe')) $('#wipe').onclick = e => { e.preventDefault(); if (confirm('Effacer toutes les données de démo ?')) { store.wipe(); location.reload(); } };
+    ({ mod: tabMod, ecran: tabScreen, quiz: tabQuiz, reg: tabSettings, liens: tabLinks })[tab]();
+  }
+
+  const act = async (fn, okMsg) => { try { await fn(); await syncOnce(['settings', 'photos', 'messages', 'teams']); render(); } catch (e) { showError(e.message); } };
+  const setStatus = (coll, id, status) => act(() => store.write(coll, id, { status }, true));
+  const pinNow = (t, id) => act(() => saveSettings({ pinned: t + ':' + id, pinnedAt: Date.now(), mode: ['accueil', 'quiz', 'noir'].includes(S().mode) ? 'auto' : S().mode }));
+  const delPhoto = id => act(async () => { await store.write('photos', id, { status: 'del' }, true); await store.remove('photoData', id).catch(() => {}); photoCache.delete(id); });
+
+  function fillThumbs() {
+    document.querySelectorAll('[data-ph]').forEach(async el => { const src = await photoSrc(el.dataset.ph); if (src) el.style.backgroundImage = `url('${src}')`; });
+  }
+  function photoTile(d, pending) {
+    return `<div class="tile"><div class="im" data-ph="${d.id}"></div>
+      <div class="meta">${d.author ? `<b>${esc(d.author)}</b>` : 'Anonyme'}${d.caption ? ' · ' + esc(d.caption) : ''}</div>
+      <div class="act">${pending
+        ? `<button class="btn sm ok" data-a="okp" data-id="${d.id}">✓ Valider</button><button class="btn sm no" data-a="nop" data-id="${d.id}">✕</button>`
+        : `<button class="btn sm gold" data-a="pinp" data-id="${d.id}">Afficher</button><button class="btn sm" data-a="dl" data-id="${d.id}">⬇</button><button class="btn sm no" data-a="delp" data-id="${d.id}">Retirer</button>`}</div></div>`;
+  }
+  function msgItem(d, pending) {
+    return `<div class="mitem"><div><p>« ${esc(d.text)} »</p><small>${esc(d.author || 'Anonyme')}</small></div><div class="row" style="flex-wrap:nowrap">${pending
+      ? `<button class="btn sm ok" data-a="okm" data-id="${d.id}">✓</button><button class="btn sm no" data-a="nom" data-id="${d.id}">✕</button>`
+      : `<button class="btn sm gold" data-a="pinm" data-id="${d.id}">Afficher</button><button class="btn sm no" data-a="delm" data-id="${d.id}">Retirer</button>`}</div></div>`;
+  }
+  function tabMod() {
+    const pp = live('photos', 'pending'), pm = live('messages', 'pending');
+    const op = live('photos', 'ok').reverse(), om = live('messages', 'ok').reverse();
+    $('#body').innerHTML = `
+      ${!S().moderation ? '<p class="empty">Modération désactivée : tout s\'affiche directement (Réglages → Écran).</p>' : ''}
+      <h3 class="sec">Photos en attente (${pp.length})</h3>
+      ${pp.length ? `<div class="row" style="margin-bottom:10px"><button class="btn sm ok" id="allp">Tout valider</button></div><div class="grid">${pp.map(d => photoTile(d, true)).join('')}</div>` : '<div class="empty">Rien en attente.</div>'}
+      <h3 class="sec">Messages en attente (${pm.length})</h3>
+      ${pm.length ? `<div class="mlist">${pm.map(d => msgItem(d, true)).join('')}</div>` : '<div class="empty">Rien en attente.</div>'}
+      <h3 class="sec">À l'écran · ${op.length} photo(s), ${om.length} message(s)</h3>
+      <div class="grid">${op.map(d => photoTile(d, false)).join('')}</div>
+      <div class="mlist" style="margin-top:12px">${om.map(d => msgItem(d, false)).join('')}</div>`;
+    fillThumbs();
+    if ($('#allp')) $('#allp').onclick = () => act(async () => { for (const d of pp) await store.write('photos', d.id, { status: 'ok' }, true); });
+    document.querySelectorAll('[data-a]').forEach(b => b.onclick = async () => {
+      const id = b.dataset.id;
+      switch (b.dataset.a) {
+        case 'okp': return setStatus('photos', id, 'ok');
+        case 'nop': return delPhoto(id);
+        case 'okm': return setStatus('messages', id, 'ok');
+        case 'nom': case 'delm': return setStatus('messages', id, 'del');
+        case 'delp': return delPhoto(id);
+        case 'pinp': return pinNow('photo', id);
+        case 'pinm': return pinNow('message', id);
+        case 'dl': { const src = await photoSrc(id); if (src) { const a = document.createElement('a'); a.href = src; a.download = `${EVENT}-${id}.jpg`; a.click(); } }
+      }
+    });
+  }
+  function tabScreen() {
+    const s = S();
+    const modes = [['auto', 'Automatique', 'Accueil, photos, mots'], ['photos', 'Photos', 'seulement'], ['messages', 'Petits mots', 'seulement'],
+                   ['accueil', 'Accueil', 'Prénoms + compte à rebours'], ['quiz', 'Quiz', 'Classement en direct'], ['noir', 'Écran noir', 'Discours, cérémonie']];
+    $('#body').innerHTML = `
+      <div class="modes">${modes.map(([k, l, d]) => `<button class="btn ${s.mode === k ? 'active' : ''}" data-m="${k}">${l}<small>${d}</small></button>`).join('')}</div>
+      <div class="card" style="margin-top:16px">
+        <label class="toggle"><input type="checkbox" id="mod" ${s.moderation ? 'checked' : ''}> Modération (je valide avant affichage)</label>
+        <label class="toggle"><input type="checkbox" id="sq" ${s.showQr ? 'checked' : ''}> Afficher le QR code sur l'écran</label>
+        <label class="toggle"><input type="checkbox" id="qa" ${s.quizAuto ? 'checked' : ''}> Insérer le classement du quiz dans le mode automatique</label>
+        <div class="field" style="margin-top:10px"><span>Durée d'une diapo : <b id="sv">${s.slideSec}</b> s</span><input type="range" id="ss" min="4" max="20" value="${s.slideSec}"></div>
+      </div>`;
+    document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => act(() => saveSettings({ mode: b.dataset.m })));
+    $('#mod').onchange = e => act(() => saveSettings({ moderation: e.target.checked }));
+    $('#sq').onchange = e => act(() => saveSettings({ showQr: e.target.checked }));
+    $('#qa').onchange = e => act(() => saveSettings({ quizAuto: e.target.checked }));
+    $('#ss').oninput = e => $('#sv').textContent = e.target.value;
+    $('#ss').onchange = e => act(() => saveSettings({ slideSec: Number(e.target.value) }));
+  }
+  function tabQuiz() {
+    const teams = Object.values(cache.teams).filter(t => t.status !== 'del').sort((a, b) => (b.score || 0) - (a.score || 0));
+    $('#body').innerHTML = `
+      <div class="row" style="margin-bottom:14px"><input id="tn" placeholder="Nom de l'équipe (ex. Table 4)" style="flex:1;min-width:180px;background:var(--navy);border:1px solid var(--line);border-radius:10px;padding:11px"><button class="btn gold" id="add">Ajouter</button></div>
+      ${teams.length ? teams.map(t => `<div class="team"><b>${esc(t.name)}</b><div class="sc">${t.score || 0}</div>
+        <div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-q="-1" data-id="${t.id}">−1</button><button class="btn sm ok" data-q="1" data-id="${t.id}">+1</button><button class="btn sm ok" data-q="2" data-id="${t.id}">+2</button><button class="btn sm ok" data-q="5" data-id="${t.id}">+5</button><button class="btn sm no" data-qd="${t.id}">✕</button></div></div>`).join('')
+        : '<div class="empty">Aucune équipe. Ajoute les tables ou les équipes.</div>'}
+      <div class="row" style="margin-top:16px"><button class="btn gold" id="showq">Afficher le classement à l'écran</button><button class="btn" id="rz">Remettre les scores à zéro</button></div>`;
+    const add = () => { const n = $('#tn').value.trim(); if (n) act(() => store.write('teams', uid(), { name: n.slice(0, 40), score: 0, status: 'ok' })); };
+    $('#add').onclick = add; $('#tn').onkeydown = e => e.key === 'Enter' && add();
+    document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => act(() => store.increment('teams', b.dataset.id, 'score', Number(b.dataset.q))));
+    document.querySelectorAll('[data-qd]').forEach(b => b.onclick = () => act(() => store.write('teams', b.dataset.qd, { status: 'del' }, true)));
+    $('#showq').onclick = () => act(() => saveSettings({ mode: 'quiz' }));
+    $('#rz').onclick = () => { if (confirm('Remettre tous les scores à 0 ?')) act(async () => { for (const t of teams) await store.write('teams', t.id, { score: 0 }, true); }); };
+  }
+  function tabSettings() {
+    const s = S();
+    $('#body').innerHTML = `<div class="card">
+      <div class="two">
+        <div class="field"><span>Prénoms des mariés</span><input id="f-names" value="${esc(s.names)}"></div>
+        <div class="field"><span>Phrase d'accueil</span><input id="f-sub" value="${esc(s.subtitle)}"></div>
+        <div class="field"><span>Date de l'événement</span><input type="date" id="f-date" value="${esc(s.date)}"></div>
+        <div class="field"><span>Couleur d'accent</span><input type="color" id="f-acc" value="${esc(s.accent)}" style="height:46px;padding:4px"></div>
+        <div class="field"><span>Compte à rebours jusqu'à</span><input type="datetime-local" id="f-cd" value="${esc(s.countdownTo)}"></div>
+        <div class="field"><span>Libellé du compte à rebours</span><input id="f-cdl" value="${esc(s.countdownLabel)}"></div>
+      </div>
+      <button class="btn gold" id="save">Enregistrer</button> <span id="saved" style="color:var(--ok);margin-left:8px"></span></div>`;
+    $('#save').onclick = async () => {
+      await act(() => saveSettings({ names: $('#f-names').value.trim(), subtitle: $('#f-sub').value.trim(), date: $('#f-date').value,
+        accent: $('#f-acc').value, countdownTo: $('#f-cd').value, countdownLabel: $('#f-cdl').value.trim() }));
+      const el = $('#saved'); if (el) el.textContent = 'Enregistré ✓';
+    };
+  }
+  function tabLinks() {
+    const gu = viewUrl('invite'), sc = viewUrl('ecran');
+    $('#body').innerHTML = `
+      <div class="card"><div class="label">Page invités (QR code des tables)</div>
+        <div class="linkbox" style="margin-top:12px"><div class="qr" id="qrg"></div><div style="flex:1;min-width:200px"><code>${esc(gu)}</code>
+        <div class="row" style="margin-top:12px"><button class="btn sm" id="cp">Copier le lien</button><button class="btn sm gold" id="pr">Imprimer les cartes QR</button></div></div></div></div>
+      <div class="card" style="margin-top:14px"><div class="label">Écran géant</div><p><code>${esc(sc)}</code></p></div>
+      ${location.protocol === 'file:' ? '<p style="color:var(--no)">⚠ Fichier ouvert en local (file://) : le QR code ne marchera pas sur les téléphones. Mets l\'appli en ligne (GitHub Pages).</p>' : ''}`;
+    makeQR($('#qrg'), gu, 160);
+    $('#cp').onclick = () => navigator.clipboard?.writeText(gu).then(() => $('#cp').textContent = 'Copié ✓');
+    $('#pr').onclick = () => {
+      const tmp = document.createElement('div'); makeQR(tmp, gu, 600);
+      const cv = tmp.querySelector('canvas'), img = cv ? cv.toDataURL() : '';
+      const s = S(), w = window.open('', '_blank'); if (!w) return showError('Autorise les fenêtres pop-up pour imprimer.');
+      const card = `<div class="c"><div class="n">${namesHtml(s.names)}</div><img src="${img}"><div class="t">Scannez-moi<br>pour envoyer vos photos<br>et vos petits mots sur le grand écran</div></div>`;
+      w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Cartes QR</title><style>
+        @page{size:A4;margin:10mm}body{margin:0;font-family:Georgia,serif;color:#0a0f1a}
+        .g{display:grid;grid-template-columns:1fr 1fr;gap:8mm}.c{border:1px solid #c8a96e;border-radius:4mm;padding:8mm;text-align:center;height:125mm;display:flex;flex-direction:column;justify-content:center;align-items:center;page-break-inside:avoid}
+        .n{font-size:24pt;margin-bottom:5mm}.amp{color:#c8a96e;font-style:italic}img{width:55mm;height:55mm}.t{margin-top:5mm;font-size:12pt;line-height:1.5}
+        </style></head><body><div class="g">${card.repeat(4)}</div><script>setTimeout(()=>print(),400)<\/script></body></html>`);
+      w.document.close();
+    };
+  }
+
+  render();
+  startSync(['settings', 'photos', 'messages', 'teams'], () => {
+    const ae = document.activeElement;   // ne pas casser une saisie en cours
+    if (ae && ['INPUT', 'TEXTAREA'].includes(ae.tagName) && ae.type !== 'checkbox' && ae.type !== 'range') return;
+    render();
+  });
+}
+let PIN_OK = false;
+
+/* =========================================================
+   8. ROUTAGE
+   ========================================================= */
+({ ecran: viewScreen, invite: viewGuest, console: viewConsole }[VIEW] || viewHome)();
+</script>
+</body>
+</html>
