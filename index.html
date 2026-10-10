@@ -181,6 +181,9 @@ a.btn{text-decoration:none;display:inline-block}
 .qbar{position:relative;height:5.6vh;background:rgba(var(--glow),.14);border-radius:3vh;overflow:hidden}
 .qbar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,rgba(var(--glow),.4),var(--accent));border-radius:3vh;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
 .qbar span{position:absolute;left:1.4vw;top:50%;transform:translateY(-50%);font-weight:700;color:var(--ink)}
+.qwin{text-align:center;font-family:var(--fs);font-size:4.4vw;color:var(--accent);margin:-2vh 0 3vh;animation:winpop 1.2s cubic-bezier(.2,1.4,.4,1) both;text-shadow:0 .6vh 3vh rgba(var(--glow),.45)}
+@keyframes winpop{0%{opacity:0;transform:scale(.6)}100%{opacity:1;transform:scale(1)}}
+.qrow.top .qbar{box-shadow:0 0 0 .5vh var(--accent)}
 .qrow .sc{font-family:var(--fd);font-size:3.2vw;font-variant-numeric:tabular-nums}
 .noir{position:absolute;inset:0;background:#000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4vh;font-family:var(--fs);color:#3a3028;font-size:2vw}
 
@@ -375,6 +378,12 @@ a.btn{text-decoration:none;display:inline-block}
 .gq-rank{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:var(--rad);padding:12px 14px;margin-bottom:8px;font-size:17px}
 .gq-rank i{font-style:normal;font-weight:800;color:var(--accent);width:28px}
 .gq-rank em{font-style:normal;margin-left:auto;font-weight:800;font-size:20px;color:var(--accent)}
+.gq-team{display:grid;gap:8px;margin:6px 0 4px}
+.gq-team button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:var(--rad);padding:14px;font-size:17px;cursor:pointer}
+.gq-team button.solo{border-style:dashed}
+.gq-me{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin:-4px 0 10px}
+.gq-me button{background:none;border:0;color:var(--accent);font-size:13px;text-decoration:underline;cursor:pointer;padding:0}
+.gq-win{text-align:center;font-family:var(--fs);font-size:30px;color:var(--accent);margin:4px 0 14px;animation:fadeup .6s ease both}
 .reactbar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:40px;padding:8px 10px;box-shadow:0 12px 34px var(--shadow);z-index:60}
 .reactbar button{border:0;background:transparent;font-size:28px;width:50px;height:50px;border-radius:50%;cursor:pointer;transition:transform .12s}
 .reactbar button:active{transform:scale(1.35)}
@@ -891,7 +900,7 @@ function startSync(colls, onChange, ms = CONFIG.pollMs) {
 const DEFAULTS = {
   names: '', subtitle: 'Bienvenue à notre mariage', date: '', countdownTo: '', countdownLabel: 'Ouverture du bal',
   mode: 'auto', moderation: false, slideSec: 8, showQr: true, showStats: true, reactions: true, quizAuto: false,
-  design: '', palette: '', theme: '', accent: '', pinned: '', pinnedAt: 0, announce: '', announceAt: 0, announceSec: 20, quizId: '', quizQ: 0, quizPhase: 'q', quizAt: 0, quizSec: 20, quizPick: '',
+  design: '', palette: '', theme: '', accent: '', pinned: '', pinnedAt: 0, announce: '', announceAt: 0, announceSec: 20, quizId: '', quizQ: 0, quizPhase: 'q', quizAt: 0, quizSec: 20, quizPick: '', quizRun: 0,
   challenges: "Un selfie avec les mariés\nLa plus belle grimace de la table\nUn toast à l'amour 🥂\nLe pas de danse le plus fou\nVotre table au complet"
 };
 const S = () => Object.assign({}, DEFAULTS, cache.settings.main || {});
@@ -1270,8 +1279,9 @@ function viewScreen() {
   function sceneQuiz() {
     const t = teams().sort((a, b) => (b.score || 0) - (a.score || 0)), max = Math.max(1, ...t.map(x => x.score || 0));
     const el = document.createElement('div'); el.className = 'quiz';
-    el.innerHTML = `<h2>Quiz Party · <span>le classement</span></h2>` + (t.length ? t.slice(0, 10).map((x, i) => `
-      <div class="qrow"><div class="rk">${i === 0 ? '👑' : i + 1}</div><div class="qbar"><i style="width:${Math.max(5, (x.score || 0) / max * 100)}%"></i><span>${esc(x.name)}</span></div><div class="sc">${x.score || 0}</div></div>`).join('')
+    const best = t.length && (t[0].score || 0) > 0 ? t.filter(x => (x.score || 0) === (t[0].score || 0)) : [];
+    el.innerHTML = `<h2>Quiz Party · <span>le classement</span></h2>` + (best.length ? `<div class="qwin">🏆 ${best.length > 1 ? 'Ex æquo' : 'Victoire'} : ${best.map(x => esc(x.name)).join(' & ')} !</div>` : '') + (t.length ? t.slice(0, best.length ? 8 : 10).map((x, i) => `
+      <div class="qrow ${best.includes(x) ? 'top' : ''}"><div class="rk">${i === 0 ? '👑' : i + 1}</div><div class="qbar"><i style="width:${Math.max(5, (x.score || 0) / max * 100)}%"></i><span>${esc(x.name)}</span></div><div class="sc">${x.score || 0}</div></div>`).join('')
       : '<p style="text-align:center;color:var(--muted);font-size:2vw">Les équipes arrivent…</p>');
     return el;
   }
@@ -1417,8 +1427,9 @@ function viewGuest() {
       shell(`${name ? `<div class="hello">Bonsoir ${esc(name)} ✨</div>` : `<div class="card" style="margin:6px 0 16px"><div class="field" style="margin:0"><span>Comment vous appelez-vous ?</span>
           <div class="row" style="flex-wrap:nowrap"><input class="input" id="nm" maxlength="40" placeholder="ex. Tata Monique"><button class="btn primary" id="okn">OK</button></div></div></div>`}
         <div class="acts">
-          ${quizLive() ? `<button class="act main" data-go="quiz" style="background:linear-gradient(135deg,var(--accent2),var(--accent))"><span class="e">🎤</span><b>Le quiz est en cours !</b><small>Répondez depuis votre téléphone</small></button>` : ''}
+          ${quizLive() ? `<button class="act main" data-go="quiz" style="background:linear-gradient(135deg,var(--accent2),var(--accent))"><span class="e">🎤</span><b>Le quiz est en cours !</b><small>Touchez ici pour jouer</small></button>` : ''}
           <button class="act main" data-go="photo"><span class="e">📸</span><b>Partager une photo</b><small>Elle s'affiche sur le grand écran</small></button>
+          ${quizLive() ? '' : `<button class="act" data-go="quiz" style="grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:16px 18px"><span class="e" style="margin:0">🎤</span><span><b>Quiz</b><small>Rejoignez votre équipe et jouez depuis votre téléphone</small></span></button>`}
           <button class="act" data-go="mot"><span class="e">💌</span><b>Mot doux</b><small>Pour les mariés</small></button>
           ${hasDefis ? `<button class="act" data-go="defis"><span class="e">🎯</span><b>Défis photo</b><small>${challenges().length} défis à relever</small></button>` : ''}
           <button class="act" data-go="fil" ${hasDefis ? 'style="grid-column:1/-1"' : ''}><span class="e">🖼️</span><b>Les photos de la soirée</b><small>Regardez, aimez, enregistrez</small></button>
@@ -1464,50 +1475,106 @@ function viewGuest() {
 
   /* ----- quiz en direct sur le téléphone ----- */
   const quizLive = () => { const m = S().mode; return (m === 'quizq' && !!quizCur()) || m === 'quiz'; };
-  const qaKey = (qid, i) => `ecran:qa:${EVENT}:${qid}:${i}`;
-  let qTimer = null, qSig = '', lastMode = '';
+  const qaKey = (qid, i) => `ecran:qa:${EVENT}:${S().quizRun || 0}:${qid}:${i}`;
+  const allTeams = () => Object.values(cache.teams).filter(x => x.status !== 'del' && x.name);
+  const myTeam = () => { const id = lsGet('ecran:team:' + EVENT, ''); const t = id && cache.teams[id]; return t && t.status !== 'del' && t.name ? t : null; };
+  let qTimer = null, qSig = '', lastMode = '', picking = false;
+  function settleOne(qid, i, good) {
+    const k = qaKey(qid, i), a = lsGet(k, ''), t = myTeam();
+    if (a === '' || good < 0 || lsGet(k + ':s', '') || !t) return;
+    lsSet(k + ':s', '1');
+    if (Number(a) === good) store.increment('teams', t.id, 'score', 1).catch(() => {});
+  }
+  function settle() {
+    const s = S(), c = quizCur();
+    let pend = null; try { pend = JSON.parse(lsGet('ecran:qpend:' + EVENT, 'null')); } catch (e) {}
+    if (pend && pend.run === (s.quizRun || 0) && !(c && c.quiz.id === pend.qid && c.i === pend.i && s.quizPhase !== 'a')) {
+      const q = QUIZZES.find(x => x.id === pend.qid);
+      if (q && !q.who && q.qs[pend.i]) settleOne(pend.qid, pend.i, q.qs[pend.i][2]);
+      if (!(c && c.quiz.id === pend.qid && c.i === pend.i)) lsSet('ecran:qpend:' + EVENT, 'null');
+    }
+    if (c && s.mode === 'quizq' && s.quizPhase === 'a') {
+      const good = c.quiz.who ? (s.quizPick === '' ? -1 : Number(s.quizPick)) : c.item[2];
+      if (c.quiz.who && good >= 0) lsSet(qaKey(c.quiz.id, c.i) + ':c', String(good));
+      settleOne(c.quiz.id, c.i, good);
+    }
+  }
   function quizScore(quiz) {
     let ok = 0, done = 0; const s = S();
     quiz.qs.forEach((it, i) => {
       const a = lsGet(qaKey(quiz.id, i), ''); if (a === '') return;
       if (s.quizId === quiz.id && Number(s.quizQ) === i && s.quizPhase !== 'a') return;
-      const good = quiz.who ? (s.quizId === quiz.id && s.quizQ === i && s.quizPick !== '' ? Number(s.quizPick) : Number(lsGet(qaKey(quiz.id, i) + ':c', '-1'))) : it[2];
+      const good = quiz.who ? Number(lsGet(qaKey(quiz.id, i) + ':c', '-1')) : it[2];
       if (good >= 0) { done++; if (Number(a) === good) ok++; }
     });
     return { ok, done };
   }
+  function teamPicker() {
+    const t = allTeams().filter(x => !x.solo);
+    return `<div class="card" style="margin-bottom:14px"><h3 class="sec" style="margin-top:0">🎤 Rejoignez le quiz</h3>
+      <p class="sub" style="margin:0 0 10px">${t.length ? 'Choisissez votre équipe : chaque bonne réponse lui rapporte 1 point.' : 'Jouez en solo : chaque bonne réponse vous rapporte 1 point.'}</p>
+      <div class="gq-team">${t.map(x => `<button data-tm="${x.id}">👥 <b>${esc(x.name)}</b></button>`).join('')}
+      ${me() ? `<button class="solo" id="tsolo">🙋 Je joue en solo (${esc(me())})</button>` : `<div class="row" style="flex-wrap:nowrap"><input class="input" id="tnm" maxlength="30" placeholder="Votre prénom"><button class="btn primary" id="tsolo">Jouer</button></div>`}</div></div>`;
+  }
+  function bindPicker() {
+    $$('[data-tm]').forEach(b => b.onclick = () => { lsSet('ecran:team:' + EVENT, b.dataset.tm); picking = false; renderQuiz(); });
+    const solo = async () => {
+      const inp = $('#tnm'); if (inp) { const v = inp.value.trim().slice(0, 30); if (!v) { inp.focus(); return; } lsSet('ecran:author', v); }
+      const id = uid(), name = (me() || 'Joueur').slice(0, 30);
+      try { await store.write('teams', id, { name: '🙋 ' + name, score: 0, status: 'ok', solo: true }); cache.teams[id] = { id, name: '🙋 ' + name, score: 0, status: 'ok', solo: true }; lsSet('ecran:team:' + EVENT, id); picking = false; renderQuiz(); }
+      catch (e) { showError(e.message); }
+    };
+    if ($('#tsolo')) $('#tsolo').onclick = solo;
+    if ($('#tnm')) $('#tnm').onkeydown = e => { if (e.key === 'Enter') solo(); };
+  }
   function renderQuiz() {
-    const s = S();
+    const s = S(), team = myTeam();
+    const meLine = team ? `<div class="gq-me"><span>Vous jouez pour <b>${esc(team.name)}</b> · ${team.score || 0} pt${(team.score || 0) > 1 ? 's' : ''}</span><button id="chg">changer</button></div>` : '';
+    const bindMe = () => { if ($('#chg')) $('#chg').onclick = () => { picking = true; renderQuiz(); }; };
+    if (!team || picking) {
+      shell(`<button class="back" data-go="home">← Accueil</button><div class="gq">${teamPicker()}
+        ${s.mode === 'quizq' ? '<p class="sub" style="text-align:center">⏳ Le quiz a commencé : choisissez vite !</p>' : ''}</div>`);
+      bindPicker(); return;
+    }
     if (s.mode === 'quiz') {
-      const t = Object.values(cache.teams).filter(x => x.status !== 'del').sort((a, b) => (b.score || 0) - (a.score || 0));
-      shell(`<button class="back" data-go="home">← Retour</button><div class="gq"><h2 class="hand" style="font-size:34px;margin:0 0 12px;color:var(--accent);text-align:center">🏆 Le classement</h2>
-        ${t.length ? t.slice(0, 15).map((x, i) => `<div class="gq-rank"><i>${['🥇', '🥈', '🥉'][i] || i + 1}</i><b>${esc(x.name)}</b><em>${x.score || 0}</em></div>`).join('') : '<div class="empty">Le classement arrive…</div>'}</div>`);
+      const t = allTeams().sort((a, b) => (b.score || 0) - (a.score || 0));
+      const best = t.length && (t[0].score || 0) > 0 ? t.filter(x => (x.score || 0) === (t[0].score || 0)) : [];
+      const iWin = best.some(x => x.id === team.id);
+      shell(`<button class="back" data-go="home">← Accueil</button><div class="gq">${meLine}<h2 class="hand" style="font-size:34px;margin:0 0 6px;color:var(--accent);text-align:center">🏆 Le classement</h2>
+        ${best.length ? `<div class="gq-win">${iWin ? '🎉 Vous avez gagné ! 🎉' : (best.length > 1 ? 'Ex æquo : ' : 'Victoire : ') + best.map(x => esc(x.name)).join(' & ')}</div>` : ''}
+        ${t.length ? t.slice(0, 20).map((x, i) => `<div class="gq-rank" ${x.id === team.id ? 'style="border-color:var(--accent);border-width:2px"' : ''}><i>${['🥇', '🥈', '🥉'][i] || i + 1}</i><b>${esc(x.name)}</b><em>${x.score || 0}</em></div>`).join('') : '<div class="empty">Le classement arrive…</div>'}</div>`);
+      bindMe(); if (iWin && !renderQuiz.cf) { renderQuiz.cf = 1; confetti(); }
       return;
     }
+    renderQuiz.cf = 0;
     const c = quizCur();
     if (s.mode !== 'quizq' || !c) {
-      shell(`<button class="back" data-go="home">← Retour</button><div class="success"><div class="e">🎤</div><h2>Prochaine question…</h2><p style="color:var(--muted)">Restez sur cette page, elle s'affichera ici automatiquement.</p></div>`);
-      return;
+      shell(`<button class="back" data-go="home">← Accueil</button><div class="gq">${meLine}<div class="success"><div class="e">🎤</div><h2>Vous êtes prêt !</h2><p style="color:var(--muted)">Le quiz va bientôt commencer. Gardez cette page ouverte : les questions s'afficheront ici automatiquement.</p></div></div>`);
+      bindMe(); return;
     }
     const { quiz, i, item } = c, who = !!quiz.who, reveal = s.quizPhase === 'a';
     const choices = who ? whoNames() : item[1];
     const good = who ? (s.quizPick === '' ? -1 : Number(s.quizPick)) : item[2];
     const mine = lsGet(qaKey(quiz.id, i), '');
-    if (reveal && who && good >= 0) lsSet(qaKey(quiz.id, i) + ':c', String(good));
     const sec = Number(s.quizSec) || 0, over = sec && Date.now() > s.quizAt + sec * 1000;
     const locked = reveal || over;
     const cls = k => reveal && good >= 0 ? (k === good ? 'ok' : (String(k) === mine ? 'ko' : 'no')) : (String(k) === mine ? 'me' : '');
     let res = '';
-    if (reveal && good >= 0) res = mine === '' ? `<div class="gq-res">La réponse est ${who ? esc(choices[good]) : 'ABCD'[good]} !</div>` : Number(mine) === good ? `<div class="gq-res">🎉 Bravo !</div>` : `<div class="gq-res">😅 Raté…</div>`;
+    if (reveal && good >= 0) res = mine === '' ? `<div class="gq-res">La réponse : ${who ? esc(choices[good]) : 'ABCD'[good]}</div>` : Number(mine) === good ? `<div class="gq-res">🎉 Bravo ! +1 point</div>` : `<div class="gq-res">😅 Raté…</div>`;
     const sc = quizScore(quiz);
-    shell(`<button class="back" data-go="home">← Accueil</button><div class="gq">
+    shell(`<button class="back" data-go="home">← Accueil</button><div class="gq">${meLine}
       <div class="gq-top"><span>${quiz.emoji} ${esc(quiz.title)}</span><span>${i + 1} / ${quiz.qs.length}</span></div>
       <div class="gq-q">${esc(who ? item : item[0])}</div>
       <div class="gq-ch ${choices.length === 2 ? 'two' : ''}">${choices.map((ch, k) => `<button class="gq-c ${cls(k)}" data-qa="${k}" ${locked ? 'disabled' : ''}><b>${who ? (k ? '💙' : '💗') : 'ABCD'[k]}</b><span>${esc(ch)}</span></button>`).join('')}</div>
       <div class="gq-foot" id="gqf"></div>${res}
       ${reveal && !who && item[3] ? `<div class="gq-info">💡 ${esc(item[3])}</div>` : ''}
-      ${sc.done ? `<div class="gq-score">Votre score perso : <b>${sc.ok} / ${sc.done}</b></div>` : ''}</div>`);
-    $$('[data-qa]').forEach(b => b.onclick = () => { if (b.disabled) return; if (navigator.vibrate) navigator.vibrate(15); lsSet(qaKey(quiz.id, i), b.dataset.qa); renderQuiz(); });
+      ${sc.done ? `<div class="gq-score">Vos bonnes réponses : <b>${sc.ok} / ${sc.done}</b></div>` : ''}</div>`);
+    bindMe();
+    $$('[data-qa]').forEach(b => b.onclick = () => {
+      if (b.disabled) return; if (navigator.vibrate) navigator.vibrate(15);
+      lsSet(qaKey(quiz.id, i), b.dataset.qa); lsSet('ecran:qpend:' + EVENT, JSON.stringify({ run: s.quizRun || 0, qid: quiz.id, i }));
+      renderQuiz();
+    });
     clearInterval(qTimer); qTimer = setInterval(qTick, 250); qTick();
   }
   function qTick() {
@@ -1517,7 +1584,7 @@ function viewGuest() {
     const sec = Number(s.quizSec) || 0;
     if (!sec) { f.innerHTML = mine === '' ? 'Touchez votre réponse 👆' : '✅ Réponse enregistrée, attendez la révélation…'; return; }
     const left = Math.ceil((s.quizAt + sec * 1000 - Date.now()) / 1000);
-    if (left > 0) f.innerHTML = `<span class="tm ${left <= 5 ? 'low' : ''}">⏱ ${left}</span>${mine === '' ? '' : '<br>✅ Réponse enregistrée'}`;
+    if (left > 0) f.innerHTML = `<span class="tm ${left <= 5 ? 'low' : ''}">⏱ ${left}</span>${mine === '' ? '<br>Touchez votre réponse 👆' : '<br>✅ Réponse enregistrée'}`;
     else { f.innerHTML = '⏰ Temps écoulé !'; $$('[data-qa]').forEach(b => b.disabled = true); }
   }
   function quizBanner(show) {
@@ -1532,19 +1599,18 @@ function viewGuest() {
   function onLive(changed) {
     const s = S();
     if (changed.includes('settings')) applyTheme();
+    settle();
     const isLive = quizLive();
-    const c = quizCur();
-    const sig = [s.mode, s.quizId, s.quizQ, s.quizPhase, s.quizPick, s.quizAt, s.quizSec].join('|');
+    const sig = [s.mode, s.quizId, s.quizQ, s.quizPhase, s.quizPick, s.quizAt, s.quizSec, s.quizRun].join('|');
     const sigChanged = sig !== qSig; qSig = sig;
-    const started = isLive && lastMode !== s.mode && (lastMode === '' ? false : true);
+    const started = isLive && lastMode !== '' && lastMode !== s.mode;
     lastMode = s.mode;
     if (view === 'quiz') {
-      if (!isLive) { go('home'); return; }
-      if (sigChanged || (s.mode === 'quiz' && changed.includes('teams'))) renderQuiz();
+      if (picking || !myTeam()) { if (changed.includes('teams') && !document.activeElement?.matches('input')) renderQuiz(); return; }
+      if (sigChanged || changed.includes('teams')) renderQuiz();
       return;
     }
     if (isLive) {
-      // bascule automatique si l'invité ne fait rien d'important, sinon bandeau
       if (started && ['home', 'fil', 'merci', 'defis'].includes(view)) { quizBanner(false); go('quiz'); return; }
       quizBanner(true);
     } else quizBanner(false);
@@ -1557,7 +1623,7 @@ function viewGuest() {
       try { const ch = await syncOnce(['settings', 'teams']); if (ch.length) onLive(ch); } catch (e) {}
       busy = false;
     };
-    (async function loop() { await run(); setTimeout(loop, S().mode === 'quizq' || S().mode === 'quiz' ? 2500 : 6000); })();
+    (async function loop() { await run(); setTimeout(loop, S().mode === 'quizq' || S().mode === 'quiz' || view === 'quiz' ? 2500 : 6000); })();
     document.addEventListener('visibilitychange', () => { if (!document.hidden) run(); });
     if (DEMO) window.addEventListener('storage', run);
   }
@@ -1627,7 +1693,7 @@ function viewGuest() {
   }
   applyTheme(); render();
   syncOnce(['settings', 'teams']).then(() => {
-    applyTheme(); const s = S(); lastMode = s.mode; qSig = [s.mode, s.quizId, s.quizQ, s.quizPhase, s.quizPick, s.quizAt, s.quizSec].join('|');
+    applyTheme(); const s = S(); lastMode = s.mode; qSig = [s.mode, s.quizId, s.quizQ, s.quizPhase, s.quizPick, s.quizAt, s.quizSec, s.quizRun].join('|'); settle();
     if (quizLive()) go('quiz'); else if (view === 'home') render();
     liveLoop();
   }).catch(e => { showError(e.message); liveLoop(); });
@@ -1654,7 +1720,8 @@ function viewConsole() {
     $('#pin').focus();
     return;
   }
-  let tab = lsGet('ecran:ctab2', 'direct');
+  let tab = lsGet('ecran:ctab2', 'direct'), AUTO = null;
+  setInterval(() => { const e = document.getElementById('autost'); if (e && AUTO) e.textContent = AUTO.step + (AUTO.until ? ' · ' + Math.max(0, Math.ceil((AUTO.until - Date.now()) / 1000)) + ' s' : ''); }, 300);
   const pend = () => live('photos', 'pending').length + live('messages', 'pending').length;
 
   function render() {
@@ -1804,13 +1871,40 @@ function viewConsole() {
     $('#dsave').onclick = () => act(() => saveSettings({ challenges: $('#dz').value.split('\n').map(x => x.trim()).filter(Boolean).slice(0, 12).join('\n') })).then(() => toast('Défis enregistrés ✓'));
     $('#dshow').onclick = () => act(() => saveSettings({ mode: 'defi' }));
   }
+  async function autoQuiz() {
+    const c0 = quizCur(); if (!c0 || AUTO) return;
+    const quiz = c0.quiz;
+    if (quiz.who) { toast('« Qui des deux ? » se joue à la main : ce sont les mariés qui donnent la réponse 💗💙'); return; }
+    const tl = Object.values(cache.teams).filter(x => x.status !== 'del');
+    if (tl.some(x => x.score) && confirm('Remettre les scores à zéro avant de lancer le quiz automatique ?')) { for (const x of tl) await store.write('teams', x.id, { score: 0 }, true); }
+    const me = AUTO = { stop: false, step: 'Démarrage…', n: quiz.qs.length };
+    const sec = Number(S().quizSec) || 20, REVEAL = 8000;
+    const wait = ms => new Promise(r => { const t0 = Date.now(); const iv = setInterval(() => { if (me.stop || Date.now() - t0 >= ms) { clearInterval(iv); r(); } }, 200); });
+    render();
+    const run = Date.now();
+    for (let i = 0; i < quiz.qs.length && !me.stop; i++) {
+      me.step = `Question ${i + 1} / ${quiz.qs.length} : les invités répondent (${sec} s)`; me.until = Date.now() + sec * 1000;
+      await act(() => saveSettings(Object.assign({ quizId: quiz.id, quizQ: i, quizPhase: 'q', quizPick: '', quizAt: Date.now(), quizSec: sec, mode: 'quizq' }, i === 0 ? { quizRun: run } : {})));
+      await wait(sec * 1000 + 1500); if (me.stop) break;
+      me.step = `Question ${i + 1} / ${quiz.qs.length} : réponse à l'écran`; me.until = Date.now() + REVEAL;
+      await act(() => saveSettings({ quizPhase: 'a' }));
+      await wait(REVEAL);
+    }
+    if (!me.stop) { me.step = 'Calcul des résultats…'; me.until = 0; await wait(3500); await act(() => saveSettings({ mode: 'quiz' })); toast('🏆 Quiz terminé : le classement final est à l\'écran !'); }
+    AUTO = null; render();
+  }
   function tabQuiz() {
     const s = S(), cat = lsGet('ecran:qcat', 'maries'), c = quizCur(), live = s.mode === 'quizq';
     const t = Object.values(cache.teams).filter(x => x.status !== 'del').sort((a, b) => (b.score || 0) - (a.score || 0));
     let anim = '';
     if (c) {
       const { quiz, i, item } = c, who = !!quiz.who, choices = who ? whoNames() : item[1];
-      anim = `<div class="card" style="margin-bottom:16px;border-color:var(--accent)"><h3 class="sec">🎤 ${quiz.emoji} ${esc(quiz.title)} — question ${i + 1} / ${quiz.qs.length}</h3>
+      anim = (AUTO ? `<div class="card" style="margin-bottom:16px;border-color:var(--accent);background:linear-gradient(135deg,rgba(var(--glow),.18),transparent)"><h3 class="sec" style="margin-top:0">🤖 Quiz automatique en cours</h3>
+        <p style="font-size:18px;margin:6px 0 12px" id="autost">${esc(AUTO.step)}</p><p class="sub" style="margin:0 0 12px">Laissez cette page ouverte : elle pilote le quiz. À la fin, le classement et les gagnants s'affichent tout seuls.</p>
+        <button class="btn danger" id="autostop">⏹ Arrêter le mode automatique</button></div>` : `<div class="card" style="margin-bottom:16px;border-color:var(--accent)"><h3 class="sec" style="margin-top:0">🤖 Mode automatique</h3>
+        <p class="sub" style="margin:0 0 12px">${who ? '« Qui des deux ? » se joue à la main (ce sont les mariés qui donnent la réponse).' : `Enchaîne les ${quiz.qs.length} questions toutes seules : question + chrono (${Number(s.quizSec) || 20} s), révélation de la réponse (8 s), question suivante… puis classement final et gagnants. Les points des invités sont comptés automatiquement.`}</p>
+        <button class="btn primary" id="autogo" ${who ? 'disabled' : ''} style="font-size:17px;padding:14px 22px">▶️ Lancer le quiz automatique</button></div>`)
+      + `<div class="card" style="margin-bottom:16px;border-color:var(--accent)"><h3 class="sec">🎤 ${quiz.emoji} ${esc(quiz.title)} — question ${i + 1} / ${quiz.qs.length}</h3>
         <p style="font-family:var(--fd);font-size:23px;margin:4px 0 12px;line-height:1.2">${esc(who ? item : item[0])}</p>
         <div class="qans">${choices.map((ch, k) => `<div class="${!who && k === item[2] ? 'good' : ''}">${who ? (k ? '💙' : '💗') : 'ABCD'[k] + '.'} ${esc(ch)}${!who && k === item[2] ? ' ✓' : ''}</div>`).join('')}</div>
         ${!who && item[3] ? `<p class="sub" style="margin:10px 0 0">💡 ${esc(item[3])}</p>` : ''}${who ? '<p class="sub" style="margin:10px 0 0">Les invités votent à main levée, les mariés montrent leur réponse : cliquez sur la bonne.</p>' : ''}
@@ -1824,7 +1918,7 @@ function viewConsole() {
           <span class="sub" style="margin:0 0 0 auto">${live ? (s.quizPhase === 'a' ? '🟢 Réponse à l\'écran' : '🟢 Question à l\'écran') : '⚪ Pas encore à l\'écran'}</span></div></div>`;
     }
     $('#body').innerHTML = `
-      <div class="card" style="margin-bottom:16px"><h3 class="sec">📚 Bibliothèque de quiz</h3><p class="sub">15 quiz prêts à jouer. La question s'affiche sur le grand écran avec un chrono, les invités voient aussi la question sur leur téléphone et touchent leur réponse (score perso). Révélez la réponse, puis donnez les points aux équipes ci-dessous.</p>
+      <div class="card" style="margin-bottom:16px"><h3 class="sec">📚 Bibliothèque de quiz</h3><p class="sub">15 quiz prêts à jouer. La question s'affiche sur le grand écran avec un chrono, les invités rejoignent leur équipe (ou jouent en solo) sur leur téléphone et touchent leur réponse : chaque bonne réponse donne 1 point à leur équipe, automatiquement. Vous pouvez aussi ajouter des points à la main ci-dessous.</p>
         <div class="row" style="margin-bottom:12px">${QUIZ_CATS.map(([k, l]) => `<button class="btn sm ${cat === k ? 'on' : ''}" data-qc="${k}">${l}</button>`).join('')}</div>
         <div class="qlib">${QUIZZES.filter(q => q.cat === cat).map(q => `<button data-qz="${q.id}" class="${s.quizId === q.id ? 'on' : ''}"><span class="e">${q.emoji}</span><b>${esc(q.title)}</b><small>${esc(q.desc)} · ${q.qs.length} questions</small></button>`).join('')}</div></div>
       ${anim}
@@ -1835,7 +1929,7 @@ function viewConsole() {
         : '<div class="empty">Aucune équipe. Ajoutez les tables ou les équipes.</div>'}
       <div class="row" style="margin-top:16px"><button class="btn primary" id="showq">🏆 Afficher le classement</button><button class="btn" id="rz">Remettre à zéro</button></div></div>`;
     $$('[data-qc]').forEach(b => b.onclick = () => { lsSet('ecran:qcat', b.dataset.qc); render(); });
-    $$('[data-qz]').forEach(b => b.onclick = () => act(() => saveSettings({ quizId: b.dataset.qz, quizQ: 0, quizPhase: 'q', quizPick: '' })).then(() => toast('Quiz choisi : cliquez « Afficher la question » 📺')));
+    $$('[data-qz]').forEach(b => b.onclick = () => act(() => saveSettings({ quizId: b.dataset.qz, quizQ: 0, quizPhase: 'q', quizPick: '', quizRun: Date.now() })).then(() => toast('Quiz choisi : cliquez « Afficher la question » 📺')));
     if (c) {
       const go = (q, extra = {}) => act(() => saveSettings(Object.assign({ quizQ: q, quizPhase: 'q', quizPick: '', quizAt: Date.now(), mode: 'quizq' }, extra)));
       $('#qprev').onclick = () => go(c.i - 1);
@@ -1844,6 +1938,8 @@ function viewConsole() {
       if ($('#qrev')) $('#qrev').onclick = () => act(() => saveSettings({ quizPhase: 'a', mode: 'quizq' }));
       $$('[data-pick]').forEach(b => b.onclick = () => act(() => saveSettings({ quizPhase: 'a', quizPick: b.dataset.pick, mode: 'quizq' })));
       $('#qrank').onclick = () => act(() => saveSettings({ mode: 'quiz' }));
+      if ($('#autogo')) $('#autogo').onclick = () => autoQuiz();
+      if ($('#autostop')) $('#autostop').onclick = () => { if (AUTO) { AUTO.stop = true; toast('Mode automatique arrêté'); } };
       $$('[data-qt]').forEach(b => b.onclick = () => act(() => saveSettings({ quizSec: Number(b.dataset.qt), quizAt: Date.now() })));
     }
     const add = () => { const n = $('#tn').value.trim(); if (n) act(() => store.write('teams', uid(), { name: n.slice(0, 40), score: 0, status: 'ok' })); };
