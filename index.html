@@ -903,7 +903,24 @@ const DEFAULTS = {
   design: '', palette: '', theme: '', accent: '', pinned: '', pinnedAt: 0, announce: '', announceAt: 0, announceSec: 20, quizId: '', quizQ: 0, quizPhase: 'q', quizAt: 0, quizSec: 20, quizPick: '', quizRun: 0,
   challenges: "Un selfie avec les mariés\nLa plus belle grimace de la table\nUn toast à l'amour 🥂\nLe pas de danse le plus fou\nVotre table au complet"
 };
-const S = () => Object.assign({}, DEFAULTS, cache.settings.main || {});
+const rawMode = () => (cache.settings.main || {}).mode;
+/* Quiz automatique : l'état (question, phase) se calcule à partir de l'heure de départ,
+   sur chaque appareil. Il ne dépend plus d'un onglet ouvert au premier plan. */
+function autoView(s) {
+  if (s.mode !== 'quizauto') return s;
+  const q = QUIZZES.find(x => x.id === s.quizId);
+  if (!q) { s.mode = 'auto'; return s; }
+  const sec = Number(s.quizSec) || 20, rev = Number(s.autoRev) || 10, slot = sec + rev;
+  const t = (Date.now() - (Number(s.autoAt) || 0)) / 1000, i = Math.floor(Math.max(0, t) / slot);
+  s.isAuto = true; s.quizSec = sec; s.quizPick = '';
+  if (i >= q.qs.length) { s.mode = 'quiz'; s.autoDone = true; return s; }
+  s.mode = 'quizq'; s.quizQ = i; s.quizAt = s.autoAt + i * slot * 1000;
+  s.quizPhase = t - i * slot < sec ? 'q' : 'a';
+  s.autoLeft = Math.max(0, Math.ceil(((s.quizPhase === 'q' ? s.quizAt + sec * 1000 : s.quizAt + slot * 1000) - Date.now()) / 1000));
+  return s;
+}
+const S = () => autoView(Object.assign({}, DEFAULTS, cache.settings.main || {}));
+const quizSig = () => { const s = S(); return [s.mode, s.quizId, s.quizQ, s.quizPhase, s.quizPick, s.quizAt, s.quizSec, s.quizRun].join('|'); };
 function designKey() { const s = S(); if (DESIGNS[s.design]) return s.design; if (OLD_THEMES[s.theme]) return OLD_THEMES[s.theme][0]; return 'guinguette'; }
 function design() { return DESIGNS[designKey()]; }
 function paletteKey() { const s = S(), d = design(); if (d.palettes[s.palette]) return s.palette; if (OLD_THEMES[s.theme] && OLD_THEMES[s.theme][0] === designKey()) return OLD_THEMES[s.theme][1]; return Object.keys(d.palettes)[0]; }
@@ -1382,7 +1399,11 @@ function viewScreen() {
     tb.classList.add('on'); clearTimeout(tb.t); tb.t = setTimeout(() => tb.classList.remove('on'), 4000);
   }
 
-  startSync(['settings', 'photos', 'messages', 'teams', 'reactions'], changed => {
+  let scrSig = '';
+  setInterval(() => { if (rawMode() !== 'quizauto' || !started) return; const g = quizSig(); if (g !== scrSig) { scrSig = g; onScreenSync(['settings']); } }, 400);
+  startSync(['settings', 'photos', 'messages', 'teams', 'reactions'], ch => onScreenSync(ch));
+  function onScreenSync(changed) {
+    scrSig = quizSig();
     let redesign = false;
     if (changed.includes('settings')) { applyTheme(); checkAnnounce(); const dk = designKey() + paletteKey(); if (dk !== lastDesign) { lastDesign = dk; redesign = true; setTimeout(() => amb.refresh(), 60); } }
     if (changed.includes('reactions')) flyReactions();
@@ -1396,7 +1417,7 @@ function viewScreen() {
     if (cur && ['accueil', 'noir'].includes(cur.k) && changed.includes('settings')) { const b = $('.scene.in', stage); if (b) { b.innerHTML = ''; b.appendChild(cur.k === 'noir' ? sceneNoir() : sceneAccueil()); tick(); } }
     if (s.mode === 'auto' && cur && cur.k === 'accueil' && changed.includes('photos') && photos().some(p => !shown.has('photo' + p.id))) { advance(); return; }
     overlays();
-  });
+  }
   setTimeout(() => { if (!started) { started = true; applyTheme(); amb.refresh(); advance(); } }, 2500);
 }
 
@@ -1557,7 +1578,7 @@ function viewGuest() {
     const good = who ? (s.quizPick === '' ? -1 : Number(s.quizPick)) : item[2];
     const mine = lsGet(qaKey(quiz.id, i), '');
     const sec = Number(s.quizSec) || 0, over = sec && Date.now() > s.quizAt + sec * 1000;
-    const locked = reveal || over;
+    const locked = reveal || over || (!who && mine !== '');
     const cls = k => reveal && good >= 0 ? (k === good ? 'ok' : (String(k) === mine ? 'ko' : 'no')) : (String(k) === mine ? 'me' : '');
     let res = '';
     if (reveal && good >= 0) res = mine === '' ? `<div class="gq-res">La réponse : ${who ? esc(choices[good]) : 'ABCD'[good]}</div>` : Number(mine) === good ? `<div class="gq-res">🎉 Bravo ! +1 point</div>` : `<div class="gq-res">😅 Raté…</div>`;
@@ -1571,8 +1592,11 @@ function viewGuest() {
       ${sc.done ? `<div class="gq-score">Vos bonnes réponses : <b>${sc.ok} / ${sc.done}</b></div>` : ''}</div>`);
     bindMe();
     $$('[data-qa]').forEach(b => b.onclick = () => {
-      if (b.disabled) return; if (navigator.vibrate) navigator.vibrate(15);
+      if (b.disabled) return;
+      if (!who && lsGet(qaKey(quiz.id, i), '') !== '') return; // une seule réponse par question
+      if (navigator.vibrate) navigator.vibrate(15);
       lsSet(qaKey(quiz.id, i), b.dataset.qa); lsSet('ecran:qpend:' + EVENT, JSON.stringify({ run: s.quizRun || 0, qid: quiz.id, i }));
+      if (!who) settleOne(quiz.id, i, item[2]); // point envoyé tout de suite (même si le téléphone se met en veille ensuite)
       renderQuiz();
     });
     clearInterval(qTimer); qTimer = setInterval(qTick, 250); qTick();
@@ -1616,6 +1640,7 @@ function viewGuest() {
     } else quizBanner(false);
     if (view === 'home' && changed.includes('settings')) render();
   }
+  setInterval(() => { if (rawMode() === 'quizauto' && quizSig() !== qSig) onLive(['tick']); }, 400);
   function liveLoop() {
     let busy = false;
     const run = async () => {
@@ -1720,8 +1745,13 @@ function viewConsole() {
     $('#pin').focus();
     return;
   }
-  let tab = lsGet('ecran:ctab2', 'direct'), AUTO = null;
-  setInterval(() => { const e = document.getElementById('autost'); if (e && AUTO) e.textContent = AUTO.step + (AUTO.until ? ' · ' + Math.max(0, Math.ceil((AUTO.until - Date.now()) / 1000)) + ' s' : ''); }, 300);
+  let tab = lsGet('ecran:ctab2', 'direct'), conSig = '';
+  const autoStep = () => { const s = S(), c = quizCur(); if (!s.isAuto) return ''; if (s.autoDone) return '🏆 Terminé : le classement final et les gagnants sont à l\'écran.';
+    return c ? `Question ${c.i + 1} / ${c.quiz.qs.length} · ${s.quizPhase === 'q' ? 'les invités répondent' : 'réponse à l\'écran'} · ${s.autoLeft} s` : ''; };
+  setInterval(() => {
+    const e = document.getElementById('autost'); if (e) e.textContent = autoStep();
+    if (rawMode() === 'quizauto' && tab === 'quiz') { const g = quizSig(); if (g !== conSig) { conSig = g; if (!document.activeElement || !document.activeElement.matches('input,textarea')) render(); } }
+  }, 400);
   const pend = () => live('photos', 'pending').length + live('messages', 'pending').length;
 
   function render() {
@@ -1766,7 +1796,10 @@ function viewConsole() {
           <label class="toggle"><input type="checkbox" id="t-st" ${s.showStats ? 'checked' : ''}> Compteurs en haut de l'écran</label>
           <label class="toggle"><input type="checkbox" id="t-qa" ${s.quizAuto ? 'checked' : ''}> Classement du quiz dans le mode automatique</label>
           <div class="field" style="margin:10px 0 0"><span>Durée d'une image : <b id="sv">${s.slideSec}</b> s</span><input type="range" id="ss" min="4" max="20" value="${s.slideSec}"></div></div>
-      </div>`;
+      </div>
+      <div class="card" style="margin-top:16px;border-color:#e2574c"><h3 class="sec" style="margin-top:0">🌙 Fin de soirée</h3>
+        <p class="sub" style="margin:0 0 12px">Efface du serveur toutes les photos, les mots doux et les équipes de cette soirée, pour libérer l'espace gratuit (1 Go). Les prénoms et le design sont gardés.<br><b>Avant :</b> vérifiez que les photos sont bien dans le dossier de sauvegarde de l'ordinateur du grand écran.</p>
+        <button class="btn danger" id="wipe">🗑️ Effacer toutes les photos du serveur</button> <span class="sub" id="wipest" style="margin:0 0 0 10px"></span></div>`;
     $$('[data-m]').forEach(b => b.onclick = () => act(() => saveSettings({ mode: b.dataset.m })));
     $$('[data-pre]').forEach(b => b.onclick = () => { $('#ann').value = b.dataset.pre; });
     $('#annGo').onclick = () => { const t = $('#ann').value.trim(); if (t) act(() => saveSettings({ announce: t.slice(0, 80), announceAt: Date.now() })).then(() => toast('Annonce affichée 📣')); };
@@ -1775,6 +1808,21 @@ function viewConsole() {
     tg('#t-mod', 'moderation'); tg('#t-qr', 'showQr'); tg('#t-re', 'reactions'); tg('#t-st', 'showStats'); tg('#t-qa', 'quizAuto');
     $('#ss').oninput = e => $('#sv').textContent = e.target.value;
     $('#ss').onchange = e => act(() => saveSettings({ slideSec: Number(e.target.value) }));
+    $('#wipe').onclick = async () => {
+      const ph = Object.values(cache.photos).filter(p => p.status !== 'wiped'), ms = Object.values(cache.messages).filter(m => m.status !== 'wiped'), tm = Object.values(cache.teams).filter(x => x.status !== 'del');
+      if (!confirm(`Fin de soirée : effacer du serveur ${ph.length} photo(s), ${ms.length} mot(s) doux et ${tm.length} équipe(s) ?
+
+Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservées sur l'ordinateur.`)) return;
+      const typed = prompt('Pour confirmer, tapez EFFACER'); if (!typed || typed.trim().toUpperCase() !== 'EFFACER') { toast('Effacement annulé'); return; }
+      const total = ph.length + ms.length + tm.length; let k = 0; const st = () => { const e = $('#wipest'); if (e) e.textContent = `Effacement… ${k} / ${total}`; };
+      await act(async () => {
+        await saveSettings({ mode: 'accueil', pinned: '', pinnedAt: 0 });
+        for (const p of ph) { await store.remove('photoData', p.id).catch(() => {}); await store.write('photos', p.id, { status: 'wiped' }); photoCache.delete(p.id); k++; st(); }
+        for (const m of ms) { await store.write('messages', m.id, { status: 'wiped' }); k++; st(); }
+        for (const x of tm) { await store.write('teams', x.id, { status: 'del', name: '', score: 0 }, true); k++; st(); }
+      });
+      toast('Serveur nettoyé ✓ Prêt pour la prochaine soirée', 4000);
+    };
   }
   function fillThumbs() { $$('[data-ph]').forEach(async el => { if (el.dataset.th) return; const src = await photoSrc(el.dataset.ph); if (src) el.style.backgroundImage = `url('${src}')`; }); }
   function tile(d, pending) {
@@ -1808,7 +1856,7 @@ function viewConsole() {
     if ($('#purge')) $('#purge').onclick = () => {
       if (!confirm('Avez-vous bien sauvegardé les photos (dossier sur l\'ordinateur ou ZIP) ?\n\nToutes les photos de cet événement seront effacées de la base en ligne. Les mots doux sont conservés.')) return;
       act(async () => { const list = Object.values(cache.photos).filter(p => p.status !== 'del'); let k = 0;
-        for (const p of list) { await store.write('photos', p.id, { status: 'del' }, true); await store.remove('photoData', p.id).catch(() => {}); photoCache.delete(p.id); toast(`Nettoyage ${++k} / ${list.length}…`, 1200); } }).then(() => toast('Espace libéré ✓'));
+        for (const p of list) { await store.write('photos', p.id, { status: 'wiped' }); await store.remove('photoData', p.id).catch(() => {}); photoCache.delete(p.id); toast(`Nettoyage ${++k} / ${list.length}…`, 1200); } }).then(() => toast('Espace libéré ✓'));
     };
     if ($('#allok')) $('#allok').onclick = () => act(async () => { for (const d of pp) await store.write('photos', d.id, { status: 'ok' }, true); for (const d of pm) await store.write('messages', d.id, { status: 'ok' }, true); });
     $$('[data-a]').forEach(b => b.onclick = async () => {
@@ -1872,26 +1920,18 @@ function viewConsole() {
     $('#dshow').onclick = () => act(() => saveSettings({ mode: 'defi' }));
   }
   async function autoQuiz() {
-    const c0 = quizCur(); if (!c0 || AUTO) return;
+    const c0 = quizCur(); if (!c0 || rawMode() === 'quizauto' && !S().autoDone) return;
     const quiz = c0.quiz;
     if (quiz.who) { toast('« Qui des deux ? » se joue à la main : ce sont les mariés qui donnent la réponse 💗💙'); return; }
     const tl = Object.values(cache.teams).filter(x => x.status !== 'del');
-    if (tl.some(x => x.score) && confirm('Remettre les scores à zéro avant de lancer le quiz automatique ?')) { for (const x of tl) await store.write('teams', x.id, { score: 0 }, true); }
-    const me = AUTO = { stop: false, step: 'Démarrage…', n: quiz.qs.length };
-    const sec = Number(S().quizSec) || 20, REVEAL = 8000;
-    const wait = ms => new Promise(r => { const t0 = Date.now(); const iv = setInterval(() => { if (me.stop || Date.now() - t0 >= ms) { clearInterval(iv); r(); } }, 200); });
-    render();
-    const run = Date.now();
-    for (let i = 0; i < quiz.qs.length && !me.stop; i++) {
-      me.step = `Question ${i + 1} / ${quiz.qs.length} : les invités répondent (${sec} s)`; me.until = Date.now() + sec * 1000;
-      await act(() => saveSettings(Object.assign({ quizId: quiz.id, quizQ: i, quizPhase: 'q', quizPick: '', quizAt: Date.now(), quizSec: sec, mode: 'quizq' }, i === 0 ? { quizRun: run } : {})));
-      await wait(sec * 1000 + 1500); if (me.stop) break;
-      me.step = `Question ${i + 1} / ${quiz.qs.length} : réponse à l'écran`; me.until = Date.now() + REVEAL;
-      await act(() => saveSettings({ quizPhase: 'a' }));
-      await wait(REVEAL);
-    }
-    if (!me.stop) { me.step = 'Calcul des résultats…'; me.until = 0; await wait(3500); await act(() => saveSettings({ mode: 'quiz' })); toast('🏆 Quiz terminé : le classement final est à l\'écran !'); }
-    AUTO = null; render();
+    if (tl.some(x => x.score) && confirm('Remettre les scores à zéro avant de lancer le quiz automatique ?')) await act(async () => { for (const x of tl) await store.write('teams', x.id, { score: 0 }, true); });
+    const sec = Number(S().quizSec) || 20, now = Date.now();
+    await act(() => saveSettings({ quizId: quiz.id, quizQ: 0, quizPhase: 'q', quizPick: '', quizSec: sec, autoRev: 10, autoAt: now + 2000, quizRun: now, mode: 'quizauto' }));
+    toast('🤖 Quiz automatique lancé !');
+  }
+  function stopAuto() {
+    const e = S();
+    act(() => saveSettings(e.autoDone ? { mode: 'quiz' } : { mode: 'quizq', quizQ: e.quizQ, quizPhase: e.quizPhase, quizAt: e.quizAt })).then(() => toast('Mode automatique arrêté : vous reprenez la main'));
   }
   function tabQuiz() {
     const s = S(), cat = lsGet('ecran:qcat', 'maries'), c = quizCur(), live = s.mode === 'quizq';
@@ -1899,10 +1939,10 @@ function viewConsole() {
     let anim = '';
     if (c) {
       const { quiz, i, item } = c, who = !!quiz.who, choices = who ? whoNames() : item[1];
-      anim = (AUTO ? `<div class="card" style="margin-bottom:16px;border-color:var(--accent);background:linear-gradient(135deg,rgba(var(--glow),.18),transparent)"><h3 class="sec" style="margin-top:0">🤖 Quiz automatique en cours</h3>
-        <p style="font-size:18px;margin:6px 0 12px" id="autost">${esc(AUTO.step)}</p><p class="sub" style="margin:0 0 12px">Laissez cette page ouverte : elle pilote le quiz. À la fin, le classement et les gagnants s'affichent tout seuls.</p>
-        <button class="btn danger" id="autostop">⏹ Arrêter le mode automatique</button></div>` : `<div class="card" style="margin-bottom:16px;border-color:var(--accent)"><h3 class="sec" style="margin-top:0">🤖 Mode automatique</h3>
-        <p class="sub" style="margin:0 0 12px">${who ? '« Qui des deux ? » se joue à la main (ce sont les mariés qui donnent la réponse).' : `Enchaîne les ${quiz.qs.length} questions toutes seules : question + chrono (${Number(s.quizSec) || 20} s), révélation de la réponse (8 s), question suivante… puis classement final et gagnants. Les points des invités sont comptés automatiquement.`}</p>
+      anim = (s.isAuto ? `<div class="card" style="margin-bottom:16px;border-color:var(--accent);background:linear-gradient(135deg,rgba(var(--glow),.18),transparent)"><h3 class="sec" style="margin-top:0">🤖 Quiz automatique ${s.autoDone ? 'terminé' : 'en cours'}</h3>
+        <p style="font-size:18px;margin:6px 0 12px" id="autost">${esc(autoStep())}</p><p class="sub" style="margin:0 0 12px">Le quiz avance tout seul, même si vous changez d'onglet ou de fenêtre. Pour chaque question : ${s.quizSec} s pour répondre, puis 10 s de réponse à l'écran avant la suivante.</p>
+        <div class="row">${s.autoDone ? `<button class="btn primary" id="autogo">🔁 Relancer ce quiz</button>` : `<button class="btn danger" id="autostop">⏹ Arrêter le mode automatique</button>`}</div></div>` : `<div class="card" style="margin-bottom:16px;border-color:var(--accent)"><h3 class="sec" style="margin-top:0">🤖 Mode automatique</h3>
+        <p class="sub" style="margin:0 0 12px">${who ? '« Qui des deux ? » se joue à la main (ce sont les mariés qui donnent la réponse).' : `Enchaîne les ${quiz.qs.length} questions toutes seules : question + chrono (${Number(s.quizSec) || 20} s), puis 10 s avec la réponse à l'écran, question suivante… puis classement final et gagnants. Les points des invités sont comptés automatiquement. Vous pouvez changer d'onglet : le quiz continue.`}</p>
         <button class="btn primary" id="autogo" ${who ? 'disabled' : ''} style="font-size:17px;padding:14px 22px">▶️ Lancer le quiz automatique</button></div>`)
       + `<div class="card" style="margin-bottom:16px;border-color:var(--accent)"><h3 class="sec">🎤 ${quiz.emoji} ${esc(quiz.title)} — question ${i + 1} / ${quiz.qs.length}</h3>
         <p style="font-family:var(--fd);font-size:23px;margin:4px 0 12px;line-height:1.2">${esc(who ? item : item[0])}</p>
@@ -1927,7 +1967,7 @@ function viewConsole() {
       ${t.length ? t.map(x => `<div class="team"><b>${esc(x.name)}</b><div class="sc">${x.score || 0}</div>
         <div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-q="-1" data-id="${x.id}">−1</button><button class="btn sm primary" data-q="1" data-id="${x.id}">+1</button><button class="btn sm primary" data-q="2" data-id="${x.id}">+2</button><button class="btn sm primary" data-q="5" data-id="${x.id}">+5</button><button class="btn sm danger" data-qd="${x.id}">✕</button></div></div>`).join('')
         : '<div class="empty">Aucune équipe. Ajoutez les tables ou les équipes.</div>'}
-      <div class="row" style="margin-top:16px"><button class="btn primary" id="showq">🏆 Afficher le classement</button><button class="btn" id="rz">Remettre à zéro</button></div></div>`;
+      <div class="row" style="margin-top:16px"><button class="btn primary" id="showq">🏆 Afficher le classement</button><button class="btn" id="rz">🔄 Remettre les scores à zéro</button><button class="btn danger" id="tdel" ${t.length ? '' : 'disabled'}>🗑️ Supprimer toutes les équipes</button></div></div>`;
     $$('[data-qc]').forEach(b => b.onclick = () => { lsSet('ecran:qcat', b.dataset.qc); render(); });
     $$('[data-qz]').forEach(b => b.onclick = () => act(() => saveSettings({ quizId: b.dataset.qz, quizQ: 0, quizPhase: 'q', quizPick: '', quizRun: Date.now() })).then(() => toast('Quiz choisi : cliquez « Afficher la question » 📺')));
     if (c) {
@@ -1939,7 +1979,7 @@ function viewConsole() {
       $$('[data-pick]').forEach(b => b.onclick = () => act(() => saveSettings({ quizPhase: 'a', quizPick: b.dataset.pick, mode: 'quizq' })));
       $('#qrank').onclick = () => act(() => saveSettings({ mode: 'quiz' }));
       if ($('#autogo')) $('#autogo').onclick = () => autoQuiz();
-      if ($('#autostop')) $('#autostop').onclick = () => { if (AUTO) { AUTO.stop = true; toast('Mode automatique arrêté'); } };
+      if ($('#autostop')) $('#autostop').onclick = stopAuto;
       $$('[data-qt]').forEach(b => b.onclick = () => act(() => saveSettings({ quizSec: Number(b.dataset.qt), quizAt: Date.now() })));
     }
     const add = () => { const n = $('#tn').value.trim(); if (n) act(() => store.write('teams', uid(), { name: n.slice(0, 40), score: 0, status: 'ok' })); };
@@ -1947,7 +1987,8 @@ function viewConsole() {
     $$('[data-q]').forEach(b => b.onclick = () => act(() => store.increment('teams', b.dataset.id, 'score', Number(b.dataset.q))));
     $$('[data-qd]').forEach(b => b.onclick = () => act(() => store.write('teams', b.dataset.qd, { status: 'del' }, true)));
     $('#showq').onclick = () => act(() => saveSettings({ mode: 'quiz' }));
-    $('#rz').onclick = () => { if (confirm('Remettre tous les scores à 0 ?')) act(async () => { for (const x of t) await store.write('teams', x.id, { score: 0 }, true); }); };
+    $('#rz').onclick = () => { if (confirm('Remettre tous les scores à 0 ?')) act(async () => { for (const x of t) await store.write('teams', x.id, { score: 0 }, true); }).then(() => toast('Scores remis à zéro ✓')); };
+    $('#tdel').onclick = () => { if (confirm('Supprimer toutes les équipes et joueurs solo ?')) act(async () => { for (const x of t) await store.write('teams', x.id, { status: 'del', name: '', score: 0 }, true); }).then(() => toast('Équipes supprimées ✓')); };
   }
   function tabQR() {
     const gu = viewUrl('invite'), sc = viewUrl('ecran');
