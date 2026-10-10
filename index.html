@@ -195,6 +195,10 @@ a.btn{text-decoration:none;display:inline-block}
 .qrbox .t{font-family:var(--fs);font-size:3.3vh;line-height:1}
 .qrbox .t small{display:block;font-family:var(--fb);font-size:1.25vh;letter-spacing:.14em;text-transform:uppercase;opacity:.55;margin-top:.7vh}
 .qrbox.hide{opacity:0;transform:translateY(4vh)}
+.qrbox.qzmode{box-shadow:0 0 0 .5vh var(--accent),0 2vh 5vh var(--shadow)}
+.qzqr .qz{padding-bottom:19vh}
+.updbadge{position:absolute;left:50%;top:2vh;transform:translate(-50%,-14vh);z-index:40;background:var(--card);color:var(--ink);border:2px solid var(--accent);border-radius:3vh;padding:1vh 2vw;font-size:2vh;box-shadow:0 1vh 3vh var(--shadow);transition:transform .6s}
+.updbadge.on{transform:translate(-50%,0)}
 .stats{position:absolute;left:2.4vw;top:2.8vh;display:flex;gap:.8vw;z-index:20;transition:opacity .6s}
 .stats span{background:var(--card);opacity:.88;border:1px solid rgba(var(--glow),.3);padding:.7vh 1.2vw;border-radius:3vh;font-weight:700;font-size:1.8vh;color:var(--ink)}
 .stats.hide{opacity:0}
@@ -724,6 +728,7 @@ const OLD_THEMES = { champagne: ['guinguette', 'champagne'], bougie: ['guinguett
 /* =====================================================================
    3. OUTILS
    ===================================================================== */
+const APP_VERSION = 8;
 const params = new URLSearchParams(location.search);
 const VIEW  = params.get('v') || 'home';
 const EVENT = (params.get('e') || 'demo').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40) || 'demo';
@@ -828,7 +833,9 @@ function FirestoreStore(projectId, apiKey) {
   const fields = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, enc(v)]));
   const fromDoc = d => { const o = { id: d.name.split('/').pop() }; for (const [k, v] of Object.entries(d.fields || {})) o[k] = dec(v); return o; };
   async function req(method, path, body) {
-    const r = await fetch(API + path + (path.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(apiKey), { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+    const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null, to = ctl && setTimeout(() => ctl.abort(), method === 'GET' || path.includes(':runQuery') ? 12000 : 30000);
+    let r; try { r = await fetch(API + path + (path.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(apiKey), { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined, signal: ctl ? ctl.signal : undefined }); }
+    catch (e) { throw new Error(e.name === 'AbortError' ? 'réseau trop lent, nouvel essai…' : 'pas de réseau'); } finally { if (to) clearTimeout(to); }
     if (r.status === 404) return null;
     if (!r.ok) throw new Error('Firestore ' + r.status + ' : ' + (await r.text()).slice(0, 160));
     const t = await r.text(); return t ? JSON.parse(t) : null;
@@ -888,8 +895,24 @@ async function syncOnce(colls) {
     for (const d of docs) { cache[c][d.id] = d; if ((d.mt || 0) > (lastMt[c] || 0)) lastMt[c] = d.mt; }
     lastRev[c] = r; changed.push(c);
   }
+  if (changed.includes('settings')) checkUpdate();
   return changed;
 }
+/* Mise à jour : si la console tourne avec une version plus récente (ou si le DJ clique sur
+   « Mettre à jour tous les écrans »), les téléphones se rechargent seuls ; le grand écran affiche un bandeau. */
+let reloadSeen = null, updatePending = false;
+function hardReload() { const u = new URL(location.href); u.searchParams.set('_r', Date.now().toString(36)); location.replace(u.toString()); }
+function checkUpdate() {
+  const m = cache.settings.main || {}, r = m.reloadAt || 0;
+  let need = false;
+  if (reloadSeen === null) reloadSeen = r; else if (r !== reloadSeen) { reloadSeen = r; need = VIEW !== 'console'; }
+  const want = Number(m.appVer) || 0;
+  if (want > APP_VERSION) { const k = 'ecran:vtry:' + want; let n = 0; try { n = Number(sessionStorage.getItem(k)) || 0; } catch (e) {} if (n < 3) { try { sessionStorage.setItem(k, n + 1); } catch (e) {} need = true; } }
+  if (!need) return;
+  if (VIEW === 'ecran' && document.fullscreenElement) { updatePending = true; const b = document.getElementById('upd'); if (b) b.classList.add('on'); return; }
+  hardReload();
+}
+window.addEventListener('pageshow', e => { if (e.persisted) location.reload(); });
 function startSync(colls, onChange, ms = CONFIG.pollMs) {
   let fails = 0, busy = false;
   const run = async () => { if (busy) return; busy = true; try { const ch = await syncOnce(colls); fails = 0; if (ch.length) onChange(ch); } catch (e) { fails++; if (fails === 1 || fails % 10 === 0) showError('Synchro : ' + e.message); } busy = false; };
@@ -1126,7 +1149,8 @@ function viewScreen() {
     <div class="frame-deco"><i></i><i></i><i></i><i></i></div>
     <div id="stage"></div>
     <div class="stats" id="stats"></div>
-    <div class="qrbox" id="qrbox"><div class="q" id="qr"></div><div class="t">Scannez-moi&nbsp;✨<small>photos · mots doux · défis</small></div></div>
+    <div class="qrbox" id="qrbox"><div class="q" id="qr"></div><div class="t" id="qrt">Scannez-moi&nbsp;✨<small>photos · mots doux · défis</small></div></div>
+    <div class="updbadge" id="upd">🔄 Nouvelle version disponible : appuyez sur <b>R</b></div>
     <div class="toastbig" id="tb"></div>
     <div class="savebadge" id="sb"></div>
     <div class="annonce" id="ann"><div><div class="k">✨ Annonce ✨</div><div class="t" id="annT"></div></div></div>
@@ -1156,7 +1180,7 @@ function viewScreen() {
   $('#go').onclick = async e => { e.stopPropagation(); fs(); wake(); if (Saver.supported() && !Saver.dir) { try { await Saver.restore(); } catch (err) {} } $('#start').remove(); };
   document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && wake());
   let mv; scr.addEventListener('mousemove', () => { scr.classList.add('cur'); clearTimeout(mv); mv = setTimeout(() => scr.classList.remove('cur'), 2200); });
-  document.addEventListener('keydown', e => { if (e.key === 'f' || e.key === 'F') fs(); if (e.key === 'ArrowRight') advance(); });
+  document.addEventListener('keydown', e => { if (e.key === 'f' || e.key === 'F') fs(); if (e.key === 'ArrowRight') advance(); if ((e.key === 'r' || e.key === 'R') && updatePending) hardReload(); });
 
   let cur = null, timer = null, step = -1, idxP = -1, idxM = -1, idxD = -1, shown = new Set(), seenPin = null, lastMode = null, freshRun = 0, lastDesign = designKey() + paletteKey();
   const PLAY = ['mur', 'mot', 'vedette', 'accueil', 'mosaique', 'vedette', 'mot', 'defi', 'mur', 'vedette', 'quiz', 'mot'];
@@ -1355,7 +1379,11 @@ function viewScreen() {
   }
   function overlays() {
     const s = S(), k = cur ? cur.k : '';
-    $('#qrbox').classList.toggle('hide', !s.showQr || ['accueil', 'defi', 'noir', 'mosaique', 'quizq'].includes(k));
+    const qz = k === 'quizq' || k === 'quiz';
+    $('#qrbox').classList.toggle('hide', qz ? false : (!s.showQr || ['accueil', 'defi', 'noir', 'mosaique'].includes(k)));
+    $('#qrbox').classList.toggle('qzmode', qz); scr.classList.toggle('qzqr', k === 'quizq');
+    const qt = qz ? 'Jouez au quiz&nbsp;🎤<small>scannez avec votre téléphone</small>' : 'Scannez-moi&nbsp;✨<small>photos · mots doux · défis</small>';
+    if ($('#qrt').innerHTML !== qt) $('#qrt').innerHTML = qt;
     const st = $('#stats'); st.classList.toggle('hide', !s.showStats || k === 'noir');
     const nr = REACTS.reduce((a, [f]) => a + (cache.reactions[f] || 0), 0);
     st.innerHTML = `<span>📸 ${photos().length}</span><span>💌 ${msgs().length}</span>${s.reactions ? `<span>❤️ ${nr}</span>` : ''}`;
@@ -1599,10 +1627,10 @@ function viewGuest() {
       if (!who) settleOne(quiz.id, i, item[2]); // point envoyé tout de suite (même si le téléphone se met en veille ensuite)
       renderQuiz();
     });
-    clearInterval(qTimer); qTimer = setInterval(qTick, 250); qTick();
+    qTick();
   }
   function qTick() {
-    const f = document.getElementById('gqf'); if (!f || view !== 'quiz') { clearInterval(qTimer); return; }
+    const f = document.getElementById('gqf'); if (!f || view !== 'quiz') return;
     const s = S(); if (s.quizPhase === 'a') { f.innerHTML = ''; return; }
     const mine = (() => { const c = quizCur(); return c ? lsGet(qaKey(c.quiz.id, c.i), '') : ''; })();
     const sec = Number(s.quizSec) || 0;
@@ -1640,12 +1668,13 @@ function viewGuest() {
     } else quizBanner(false);
     if (view === 'home' && changed.includes('settings')) render();
   }
-  setInterval(() => { if (rawMode() === 'quizauto' && quizSig() !== qSig) onLive(['tick']); }, 400);
+  setInterval(() => { try { qTick(); } catch (e) {} }, 250);
+  setInterval(() => { try { if (quizSig() !== qSig) onLive(['tick']); } catch (e) { showError('Quiz : ' + e.message); qSig = ''; } }, 400);
   function liveLoop() {
     let busy = false;
     const run = async () => {
       if (busy || document.hidden) return; busy = true;
-      try { const ch = await syncOnce(['settings', 'teams']); if (ch.length) onLive(ch); } catch (e) {}
+      try { const ch = await syncOnce(['settings', 'teams']); if (ch.length) onLive(ch); } catch (e) { console.warn(e); }
       busy = false;
     };
     (async function loop() { await run(); setTimeout(loop, S().mode === 'quizq' || S().mode === 'quiz' || view === 'quiz' ? 2500 : 6000); })();
@@ -1746,6 +1775,7 @@ function viewConsole() {
     return;
   }
   let tab = lsGet('ecran:ctab2', 'direct'), conSig = '';
+  syncOnce(['settings']).then(() => { if ((Number((cache.settings.main || {}).appVer) || 0) < APP_VERSION) saveSettings({ appVer: APP_VERSION }).catch(() => {}); }).catch(() => {});
   const autoStep = () => { const s = S(), c = quizCur(); if (!s.isAuto) return ''; if (s.autoDone) return '🏆 Terminé : le classement final et les gagnants sont à l\'écran.';
     return c ? `Question ${c.i + 1} / ${c.quiz.qs.length} · ${s.quizPhase === 'q' ? 'les invités répondent' : 'réponse à l\'écran'} · ${s.autoLeft} s` : ''; };
   setInterval(() => {
@@ -1797,9 +1827,12 @@ function viewConsole() {
           <label class="toggle"><input type="checkbox" id="t-qa" ${s.quizAuto ? 'checked' : ''}> Classement du quiz dans le mode automatique</label>
           <div class="field" style="margin:10px 0 0"><span>Durée d'une image : <b id="sv">${s.slideSec}</b> s</span><input type="range" id="ss" min="4" max="20" value="${s.slideSec}"></div></div>
       </div>
+      <div class="card" style="margin-top:16px"><h3 class="sec" style="margin-top:0">📲 Écrans et téléphones</h3>
+        <p class="sub" style="margin:0 0 12px">Si un téléphone ou le grand écran semble bloqué ou affiche une ancienne version : ce bouton recharge à distance toutes les pages invités. Sur le grand écran en plein écran, un petit bandeau apparaît : appuyez sur <b>R</b>.</p>
+        <button class="btn" id="reloadall">🔄 Mettre à jour tous les écrans et téléphones</button> <span class="sub" style="margin:0 0 0 10px">Version ${APP_VERSION}</span></div>
       <div class="card" style="margin-top:16px;border-color:#e2574c"><h3 class="sec" style="margin-top:0">🌙 Fin de soirée</h3>
         <p class="sub" style="margin:0 0 12px">Efface du serveur toutes les photos, les mots doux et les équipes de cette soirée, pour libérer l'espace gratuit (1 Go). Les prénoms et le design sont gardés.<br><b>Avant :</b> vérifiez que les photos sont bien dans le dossier de sauvegarde de l'ordinateur du grand écran.</p>
-        <button class="btn danger" id="wipe">🗑️ Effacer toutes les photos du serveur</button> <span class="sub" id="wipest" style="margin:0 0 0 10px"></span></div>`;
+        <button class="btn danger" id="endwipe">🗑️ Effacer toutes les photos du serveur</button> <span class="sub" id="wipest" style="margin:0 0 0 10px"></span></div>`;
     $$('[data-m]').forEach(b => b.onclick = () => act(() => saveSettings({ mode: b.dataset.m })));
     $$('[data-pre]').forEach(b => b.onclick = () => { $('#ann').value = b.dataset.pre; });
     $('#annGo').onclick = () => { const t = $('#ann').value.trim(); if (t) act(() => saveSettings({ announce: t.slice(0, 80), announceAt: Date.now() })).then(() => toast('Annonce affichée 📣')); };
@@ -1808,7 +1841,8 @@ function viewConsole() {
     tg('#t-mod', 'moderation'); tg('#t-qr', 'showQr'); tg('#t-re', 'reactions'); tg('#t-st', 'showStats'); tg('#t-qa', 'quizAuto');
     $('#ss').oninput = e => $('#sv').textContent = e.target.value;
     $('#ss').onchange = e => act(() => saveSettings({ slideSec: Number(e.target.value) }));
-    $('#wipe').onclick = async () => {
+    $('#reloadall').onclick = () => act(() => saveSettings({ reloadAt: Date.now(), appVer: APP_VERSION })).then(() => toast('Mise à jour envoyée aux téléphones et au grand écran 📲'));
+    $('#endwipe').onclick = async () => {
       const ph = Object.values(cache.photos).filter(p => p.status !== 'wiped'), ms = Object.values(cache.messages).filter(m => m.status !== 'wiped'), tm = Object.values(cache.teams).filter(x => x.status !== 'del');
       if (!confirm(`Fin de soirée : effacer du serveur ${ph.length} photo(s), ${ms.length} mot(s) doux et ${tm.length} équipe(s) ?
 
