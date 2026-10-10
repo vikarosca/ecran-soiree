@@ -408,6 +408,32 @@ a.btn{text-decoration:none;display:inline-block}
 .c-tabs .n{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:10px;background:#d9605a;color:#fff;font-size:12px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media (max-width:760px){.grid2{grid-template-columns:1fr}}
+/* ---- espace mariés ---- */
+.cpl-hero{text-align:center;padding:10px 0 4px}
+.cpl-hero .cd{display:inline-block;margin-top:10px;font-family:var(--fs);font-size:30px;color:var(--accent)}
+.steps{display:grid;gap:10px}
+.steps button{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--rad);padding:14px 16px;cursor:pointer;color:var(--ink);font-size:15px}
+.steps button .ck{width:30px;height:30px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--line);font-size:15px}
+.steps button.done .ck{background:#3fbf6f;border-color:#3fbf6f;color:#fff}
+.steps button small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.steps button .go{margin-left:auto;color:var(--accent);font-weight:700}
+.qed{border:1px solid var(--line);border-radius:var(--rad);padding:14px;margin-bottom:12px;background:var(--card2)}
+.qed .ans{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.qed .ans label{display:flex;align-items:center;gap:8px}
+.qed .ans input[type=text]{flex:1;min-width:0}
+.qed .ans input[type=radio]{width:20px;height:20px;accent-color:#3fbf6f;flex:none}
+.qed .hd{display:flex;justify-content:space-between;align-items:center;font-weight:700;color:var(--accent);font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.whol{display:grid;gap:8px}
+.whol div{display:flex;gap:8px}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px}
+.gal button{aspect-ratio:1;border:0;border-radius:10px;background:#ddd center/cover;cursor:pointer;padding:0}
+.livre{display:grid;gap:10px}
+.livre div{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-family:var(--fs);font-size:21px;line-height:1.25}
+.livre div small{display:block;font-family:var(--fb);font-size:13px;color:var(--muted);margin-top:6px}
+.musicv{display:grid;gap:8px}
+.musicv div{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;white-space:pre-wrap}
+.musicv b{display:block;font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+@media (max-width:600px){.qed .ans{grid-template-columns:1fr}}
 .modes{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
 .modes .btn{padding:16px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:14px}
 .modes .btn .e{font-size:26px}
@@ -722,13 +748,31 @@ const QUIZZES = [
   ]}
 ];
 const QUIZ_CATS = [['maries', '💍 Mariés'], ['anniv', '🎂 Anniversaire'], ['culture', '🧠 Culture générale']];
+/* Quiz écrits par les mariés (stockés dans les réglages de la soirée, champ customQuiz) */
+let cqMemo = { k: null, v: [] };
+function customQuizzes() {
+  const m = cache.settings.main || {}, key = (m.customQuiz || '') + '|' + (m.names || '');
+  if (cqMemo.k === key) return cqMemo.v;
+  let c = {}; try { c = JSON.parse(m.customQuiz || '{}') || {}; } catch (e) {}
+  const names = m.names || 'les mariés', out = [];
+  const qs = (c.qs || []).map(x => {
+    const keep = (x.a || []).map((a, i) => [String(a || '').trim(), i]).filter(([a]) => a);
+    return [String(x.q || '').trim(), keep.map(([a]) => a), keep.findIndex(([, i]) => i === Number(x.c)), String(x.i || '').trim()];
+  }).filter(x => x[0] && x[1].length >= 2 && x[2] >= 0);
+  if (qs.length) out.push({ id: 'perso-qcm', cat: 'perso', emoji: '💑', title: 'Spécial ' + names, desc: 'Le quiz écrit par les mariés', qs });
+  const who = (c.who || []).map(x => String(x || '').trim()).filter(Boolean);
+  if (who.length) out.push({ id: 'perso-who', cat: 'perso', emoji: '💗', title: 'Qui des deux ? (par les mariés)', desc: 'Les questions choisies par les mariés', who: true, qs: who });
+  cqMemo = { k: key, v: out }; return out;
+}
+const allQuizzes = () => customQuizzes().length ? QUIZZES.concat(customQuizzes()) : QUIZZES;
+function parseJSON(t, d) { try { return JSON.parse(t || '') || d; } catch (e) { return d; } }
 
 const OLD_THEMES = { champagne: ['guinguette', 'champagne'], bougie: ['guinguette', 'bougie'], fiesta: ['guinguette', 'couchant'], nuit: ['prestige', 'marine'] };
 
 /* =====================================================================
    3. OUTILS
    ===================================================================== */
-const APP_VERSION = 8;
+const APP_VERSION = 9;
 const params = new URLSearchParams(location.search);
 const VIEW  = params.get('v') || 'home';
 const EVENT = (params.get('e') || 'demo').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40) || 'demo';
@@ -931,7 +975,7 @@ const rawMode = () => (cache.settings.main || {}).mode;
    sur chaque appareil. Il ne dépend plus d'un onglet ouvert au premier plan. */
 function autoView(s) {
   if (s.mode !== 'quizauto') return s;
-  const q = QUIZZES.find(x => x.id === s.quizId);
+  const q = allQuizzes().find(x => x.id === s.quizId);
   if (!q) { s.mode = 'auto'; return s; }
   const sec = Number(s.quizSec) || 20, rev = Number(s.autoRev) || 10, slot = sec + rev;
   const t = (Date.now() - (Number(s.autoAt) || 0)) / 1000, i = Math.floor(Math.max(0, t) / slot);
@@ -984,16 +1028,17 @@ function viewHome() {
       <a class="card" id="l-console"><b>🎛️ Console DJ →</b><br><small>Tout se pilote d'ici : écran, annonces, photos, quiz, design.</small></a>
       <a class="card" id="l-ecran"><b>📺 Grand écran →</b><br><small>À ouvrir sur l'ordinateur relié au vidéoprojecteur.</small></a>
       <a class="card" id="l-invite"><b>📱 Page invités →</b><br><small>Ce que voient les invités après avoir scanné le QR code.</small></a>
+      <a class="card" id="l-maries"><b>💍 Espace mariés →</b><br><small>Préparation, quiz, musiques et souvenirs, avec leur code secret.</small></a>
     </div>
   </div>`;
-  const upd = () => { const e = ($('#ev').value || 'demo').toLowerCase().replace(/[^a-z0-9_-]/g, ''); ['ecran', 'console', 'invite'].forEach(v => $('#l-' + v).href = location.pathname + '?v=' + v + '&e=' + e + (FORCE_DEMO ? '&demo=1' : '')); };
+  const upd = () => { const e = ($('#ev').value || 'demo').toLowerCase().replace(/[^a-z0-9_-]/g, ''); ['ecran', 'console', 'invite', 'maries'].forEach(v => $('#l-' + v).href = location.pathname + '?v=' + v + '&e=' + e + (FORCE_DEMO ? '&demo=1' : '')); };
   $('#ev').addEventListener('input', upd); upd();
 }
 
 
 /* ----- quiz : question courante ----- */
 function quizCur() {
-  const s = S(), q = QUIZZES.find(x => x.id === s.quizId); if (!q) return null;
+  const s = S(), q = allQuizzes().find(x => x.id === s.quizId); if (!q) return null;
   const i = Math.max(0, Math.min(q.qs.length - 1, Number(s.quizQ) || 0));
   return { quiz: q, i, item: q.qs[i] };
 }
@@ -1538,7 +1583,7 @@ function viewGuest() {
     const s = S(), c = quizCur();
     let pend = null; try { pend = JSON.parse(lsGet('ecran:qpend:' + EVENT, 'null')); } catch (e) {}
     if (pend && pend.run === (s.quizRun || 0) && !(c && c.quiz.id === pend.qid && c.i === pend.i && s.quizPhase !== 'a')) {
-      const q = QUIZZES.find(x => x.id === pend.qid);
+      const q = allQuizzes().find(x => x.id === pend.qid);
       if (q && !q.who && q.qs[pend.i]) settleOne(pend.qid, pend.i, q.qs[pend.i][2]);
       if (!(c && c.quiz.id === pend.qid && c.i === pend.i)) lsSet('ecran:qpend:' + EVENT, 'null');
     }
@@ -1753,6 +1798,217 @@ function viewGuest() {
   }).catch(e => { showError(e.message); liveLoop(); });
 }
 
+
+/* =====================================================================
+   7b. ESPACE MARIÉS (?v=maries&e=…) — protégé par un code choisi par le DJ
+   ===================================================================== */
+function crc32(buf) {
+  let t = crc32.t; if (!t) { t = crc32.t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } }
+  let c = 0xFFFFFFFF; for (let i = 0; i < buf.length; i++) c = t[(c ^ buf[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function makeZip(files) {
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  for (const f of files) {
+    const nm = enc.encode(f.name), crc = crc32(f.data), sz = f.data.length;
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(12, 0x21, true);
+    h.setUint32(14, crc, true); h.setUint32(18, sz, true); h.setUint32(22, sz, true); h.setUint16(26, nm.length, true);
+    parts.push(h.buffer, nm, f.data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(14, 0x21, true);
+    c.setUint32(16, crc, true); c.setUint32(20, sz, true); c.setUint32(24, sz, true); c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
+    central.push(c.buffer, nm); off += 30 + nm.length + sz;
+  }
+  const cs = central.reduce((a, b) => a + b.byteLength, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...central, e.buffer], { type: 'application/zip' });
+}
+function downloadBlob(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); }
+function dzPreview(k) {
+  const d = DESIGNS[k], v = Object.values(d.palettes)[0].v;
+  const deco = { gold: '✦ ◆ ✦', garland: '💡💡💡', leaves: '🌿 🍃 🌿', confetti: '🎉 ✨ 🎈', disco: '🪩 ✨' }[d.amb];
+  return `<div class="pv" style="background:radial-gradient(120% 90% at 50% 0%,${v.bg1},${v.bg2});color:${v.accent}"><span style="font-size:15px;position:absolute;top:8px;letter-spacing:.2em">${deco}</span><span style="font-family:${d.fonts.d};color:${v.ink};font-size:26px">Julie <span style="font-family:${d.fonts.s};color:${v.accent}">&amp;</span> Tom</span></div>`;
+}
+const MUSIC_FIELDS = [['entree', '🚪 Entrée des mariés', 'Le morceau sur lequel vous entrez dans la salle'], ['danse', '💃 Première danse', 'Titre et artiste (version précise si besoin)'],
+  ['gateau', '🎂 Arrivée du gâteau', 'Facultatif'], ['must', '⭐ Incontournables', 'Les morceaux à passer absolument, un par ligne'],
+  ['non', '🚫 À ne jamais passer', 'Un par ligne'], ['notes', '📝 Autres souhaits', 'Styles préférés, moments clés, surprises prévues…']];
+
+function viewCouple() {
+  document.title = 'Espace mariés ✨';
+  let tab = lsGet('ecran:ctab-m', 'accueil'), draft = null, photosLoaded = false;
+  const okKey = 'ecran:cpl:' + EVENT;
+  const unlocked = () => { const c = String((cache.settings.main || {}).coupleCode || ''); try { const v = sessionStorage.getItem(okKey); return !!v && (v === c || v === 'dj:' + CONFIG.pinConsole); } catch (e) { return false; } };
+  const save = async (patch, msg = 'Enregistré ✓') => { try { await saveSettings(patch); await syncOnce(['settings']); toast(msg); render(); } catch (e) { showError(e.message); } };
+
+  function login() {
+    const code = String((cache.settings.main || {}).coupleCode || '');
+    $('#app').innerHTML = `${headerDeco()}<div class="pin"><div class="kicker">Espace mariés</div><h2 class="serif" style="font-weight:500;font-size:34px;margin:8px 0 6px">${namesHtml(S().names) || 'Bienvenue'}</h2>
+      ${code ? `<p style="color:var(--muted);margin:0 0 16px">Entrez le code que votre DJ vous a envoyé.</p>
+      <div class="pinwrap"><input class="input masked" id="pin" type="text" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" style="text-align:center;font-size:26px;letter-spacing:.3em;padding-right:44px">
+      <button class="eye" id="eye" type="button" title="Afficher le code">👁️</button></div>
+      <button class="btn primary" id="go" style="width:100%;margin-top:12px">Entrer</button><p id="bad" style="color:#d9605a;min-height:22px"></p>`
+      : `<p style="color:var(--muted)">Votre espace n'est pas encore ouvert. Votre DJ vous enverra un lien et un code.</p>`}</div>`;
+    if (!code) return;
+    const tryIt = () => {
+      const v = $('#pin').value.trim(), n = normPin(v);
+      let ok = null; if (n === normPin(code) || v === code) ok = code; else if (CONFIG.pinConsole && (n === normPin(CONFIG.pinConsole) || v === CONFIG.pinConsole)) ok = 'dj:' + CONFIG.pinConsole;
+      if (ok) { try { sessionStorage.setItem(okKey, ok); } catch (e) {} render(); } else $('#bad').textContent = 'Code incorrect — vérifiez avec l\'œil 👁️';
+    };
+    $('#go').onclick = tryIt; $('#pin').onkeydown = e => { if (e.key === 'Enter') tryIt(); };
+    $('#pin').oninput = () => { $('#bad').textContent = ''; };
+    $('#eye').onclick = () => $('#pin').classList.toggle('masked');
+    $('#pin').focus();
+  }
+
+  function render() {
+    applyTheme();
+    if (!unlocked()) return login();
+    const s = S();
+    $('#app').innerHTML = `${headerDeco()}<div class="console">
+      <div class="c-top"><div><span class="kicker">Espace mariés · ${esc(CONFIG.brand)}</span><h1>${namesHtml(s.names) || 'Notre mariage'}</h1></div>
+        <div class="row"><a class="btn" href="${viewUrl('invite')}" target="_blank" rel="noopener">📱 Voir la page des invités</a></div></div>
+      <div class="c-tabs">${[['accueil', '🏠 Accueil'], ['style', '🎨 Notre style'], ['defis', '🎯 Défis photo'], ['quiz', '💑 Notre quiz'], ['musique', '🎵 Musiques'], ['souvenirs', '📸 Souvenirs']]
+        .map(([k, l]) => `<button class="btn sm ${tab === k ? 'on' : ''}" data-t="${k}">${l}</button>`).join('')}</div>
+      <div id="body"></div></div>`;
+    $$('[data-t]').forEach(b => b.onclick = () => go(b.dataset.t));
+    ({ accueil: tAccueil, style: tStyle, defis: tDefis, quiz: tQuiz, musique: tMusique, souvenirs: tSouvenirs }[tab] || tAccueil)();
+  }
+  function go(t) { tab = t; lsSet('ecran:ctab-m', t); draft = null; render(); scrollTo(0, 0); }
+
+  function tAccueil() {
+    const s = S(), music = parseJSON(s.music, {}), cq = parseJSON(s.customQuiz, {});
+    let cd = '';
+    if (s.date) { const d = Math.ceil((new Date(s.date + 'T12:00:00') - Date.now()) / 86400000); cd = d > 1 ? `J − ${d}` : d === 1 ? 'C\'est demain ! 💍' : d === 0 ? 'C\'est aujourd\'hui ! 🎉' : 'Merci pour cette belle fête ✨'; }
+    const nq = (cq.qs || []).length + (cq.who || []).length, nm = MUSIC_FIELDS.filter(([k]) => (music[k] || '').trim()).length;
+    const steps = [
+      ['style', !!(s.names && s.design), '🎨 Nos prénoms et notre style', s.names ? `${esc(s.names)}${s.design ? ' · style « ' + esc(design().name) + ' »' : ' · choisissez un style'}` : 'Prénoms, date, phrase d\'accueil et décor de l\'écran'],
+      ['defis', s.challenges !== DEFAULTS.challenges, '🎯 Nos défis photo', `${challenges().length} défi(s) proposés aux invités`],
+      ['quiz', nq > 0, '💑 Notre quiz', nq ? `${nq} question(s) écrite(s) par vous` : 'Écrivez des questions sur votre couple'],
+      ['musique', nm > 0, '🎵 Nos musiques', nm ? `${nm} rubrique(s) remplie(s)` : 'Entrée, première danse, incontournables…'],
+      ['souvenirs', false, '📸 Nos souvenirs', 'Après la fête : toutes les photos et le livre d\'or']];
+    $('#body').innerHTML = `<div class="card" style="margin-bottom:16px"><div class="cpl-hero"><div class="kicker">${esc(s.subtitle || '')}</div>
+        <div class="names" style="font-family:var(--fd);font-size:40px;line-height:1.1">${namesHtml(s.names) || 'Notre mariage'}</div>
+        ${s.date ? `<div style="color:var(--muted);margin-top:6px">${esc(fmtDate(s.date))}</div>` : ''}${cd ? `<div class="cd">${cd}</div>` : ''}</div></div>
+      <div class="card"><h3 class="sec" style="margin-top:0">Préparons votre soirée ensemble</h3><p class="sub">Tout ce que vous remplissez ici apparaît directement sur le grand écran et sur les téléphones des invités le jour J. Vous pouvez modifier jusqu'à la dernière minute.</p>
+        <div class="steps">${steps.map(([k, done, t, d]) => `<button data-go="${k}" class="${done ? 'done' : ''}"><span class="ck">${done ? '✓' : ''}</span><span><b>${t}</b><small>${d}</small></span><span class="go">→</span></button>`).join('')}</div></div>`;
+    $$('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+  }
+
+  function tStyle() {
+    const s = S(), dk = designKey(), pk = paletteKey(), d = DESIGNS[dk];
+    if (!document.getElementById('allfonts')) { const l = document.createElement('link'); l.id = 'allfonts'; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=' + Object.values(DESIGNS).map(x => x.gf).join('&family=') + '&display=swap'; document.head.appendChild(l); }
+    $('#body').innerHTML = `<div class="card" style="margin-bottom:16px"><h3 class="sec" style="margin-top:0">💍 Vous deux</h3><div class="grid2">
+        <div class="field"><span>Vos prénoms (ex. Julie &amp; Thomas)</span><input class="input" id="f-names" maxlength="60" value="${esc(s.names)}"></div>
+        <div class="field"><span>Date du mariage</span><input class="input" type="date" id="f-date" value="${esc(s.date)}"></div>
+        <div class="field" style="grid-column:1/-1"><span>Phrase d'accueil (en haut de l'écran et des téléphones)</span><input class="input" id="f-sub" maxlength="80" value="${esc(s.subtitle)}"></div></div>
+        <button class="btn primary" id="save">Enregistrer</button></div>
+      <div class="card" style="margin-bottom:16px"><h3 class="sec" style="margin-top:0">🎨 Le style de votre écran</h3><p class="sub">Touchez un style : il s'applique tout de suite au grand écran et aux téléphones des invités.</p>
+        <div class="designs">${Object.entries(DESIGNS).map(([k, x]) => `<button data-dz="${k}" class="${k === dk ? 'on' : ''}">${dzPreview(k)}<div class="tx"><b>${x.name}</b><small><b style="display:inline;font-size:12px;color:var(--accent)">${x.mood}</b> — ${x.desc}</small></div></button>`).join('')}</div></div>
+      <div class="card"><h3 class="sec" style="margin-top:0">Couleurs « ${d.name} »</h3>
+        <div class="palettes">${Object.entries(d.palettes).map(([k, p]) => `<button data-pal="${k}" class="${k === pk ? 'on' : ''}"><i style="background:linear-gradient(135deg,${p.v.bg1},${p.v.bg2});--dot:${p.v.accent}"></i>${p.name}</button>`).join('')}</div>
+        <div class="row" style="margin-top:14px"><label class="field" style="margin:0;flex:0 0 auto"><span>Votre couleur (facultatif)</span><input type="color" id="acc" value="${esc(s.accent || d.palettes[pk].v.accent)}" style="height:46px;width:90px;padding:4px"></label>
+          <button class="btn sm" id="accR">Couleur de la palette</button></div></div>`;
+    $('#save').onclick = () => save({ names: $('#f-names').value.trim().slice(0, 60), date: $('#f-date').value, subtitle: $('#f-sub').value.trim().slice(0, 80) });
+    $$('[data-dz]').forEach(b => b.onclick = () => save({ design: b.dataset.dz, palette: Object.keys(DESIGNS[b.dataset.dz].palettes)[0], accent: '' }, 'Style « ' + DESIGNS[b.dataset.dz].name + ' » choisi ✨'));
+    $$('[data-pal]').forEach(b => b.onclick = () => save({ design: dk, palette: b.dataset.pal, accent: '' }));
+    $('#acc').onchange = e => save({ accent: e.target.value });
+    $('#accR').onclick = () => save({ accent: '' });
+  }
+
+  function tDefis() {
+    $('#body').innerHTML = `<div class="card"><h3 class="sec" style="margin-top:0">🎯 Vos défis photo</h3><p class="sub">Les invités les voient sur leur téléphone (« Défis photo ») et le grand écran les lance pendant la soirée. Un défi par ligne, 12 maximum.<br>Idées : « Une photo avec le plus vieux et le plus jeune invité », « Recréez notre photo de fiançailles », « Le meilleur pas de danse de la soirée »…</p>
+      <textarea class="input" id="ch" rows="10" style="width:100%;font-size:16px;line-height:1.5">${esc(S().challenges)}</textarea>
+      <div class="row" style="margin-top:12px"><button class="btn primary" id="save">Enregistrer</button><button class="btn" id="reset">Reprendre les idées de départ</button></div></div>`;
+    $('#save').onclick = () => save({ challenges: $('#ch').value.split('\n').map(x => x.trim()).filter(Boolean).slice(0, 12).map(x => x.slice(0, 90)).join('\n') });
+    $('#reset').onclick = () => { $('#ch').value = DEFAULTS.challenges; };
+  }
+
+  function tQuiz() {
+    if (!draft) { const c = parseJSON(S().customQuiz, {}); draft = { who: (c.who || []).slice(), qs: (c.qs || []).map(x => ({ q: x.q || '', a: [0, 1, 2, 3].map(i => (x.a || [])[i] || ''), c: Number(x.c) || 0, i: x.i || '' })) }; }
+    const ex = ['Qui a dit « je t\'aime » en premier ?', 'Qui est le plus long à se préparer ?', 'Qui cuisine le mieux ?', 'Qui s\'endort devant les films ?'];
+    $('#body').innerHTML = `<div class="card" style="margin-bottom:16px"><h3 class="sec" style="margin-top:0">💗 « Qui des deux ? »</h3><p class="sub">Une question par ligne. Pendant le quiz, les invités votent sur leur téléphone, puis vous montrez la réponse (une chaussure, une pancarte…) et le DJ la valide. Exemples : ${ex.map(esc).join(' · ')}</p>
+        <div class="whol" id="whol">${draft.who.map((w, i) => `<div><input class="input" data-w="${i}" maxlength="120" value="${esc(w)}" style="flex:1"><button class="btn sm danger" data-wd="${i}">✕</button></div>`).join('')}</div>
+        <div class="row" style="margin-top:10px"><button class="btn" id="wadd" ${draft.who.length >= 20 ? 'disabled' : ''}>+ Ajouter une question</button></div></div>
+      <div class="card" style="margin-bottom:16px"><h3 class="sec" style="margin-top:0">💑 Quiz sur votre couple</h3><p class="sub">Questions à choix (2 à 4 réponses). Cochez la bonne réponse ⦿. Exemple : « Où se sont-ils rencontrés ? » — à la fac / au travail / en soirée / sur une appli.</p>
+        <div id="qeds">${draft.qs.map((q, n) => `<div class="qed"><div class="hd"><span>Question ${n + 1}</span><button class="btn sm danger" data-qd="${n}">Supprimer</button></div>
+          <input class="input" data-qq="${n}" maxlength="140" placeholder="La question" value="${esc(q.q)}" style="width:100%;margin-top:8px">
+          <div class="ans">${q.a.map((a, i) => `<label><input type="radio" name="c${n}" data-qc="${n}" value="${i}" ${q.c === i ? 'checked' : ''} title="Bonne réponse"><input type="text" class="input" data-qa="${n}:${i}" maxlength="60" placeholder="Réponse ${'ABCD'[i]}${i > 1 ? ' (facultatif)' : ''}" value="${esc(a)}"></label>`).join('')}</div>
+          <input class="input" data-qi="${n}" maxlength="140" placeholder="Petite anecdote affichée avec la réponse (facultatif)" value="${esc(q.i)}" style="width:100%"></div>`).join('')}</div>
+        <div class="row"><button class="btn" id="qadd" ${draft.qs.length >= 20 ? 'disabled' : ''}>+ Ajouter une question</button></div></div>
+      <div class="card"><div class="row"><button class="btn primary" id="save" style="font-size:17px;padding:14px 24px">💾 Enregistrer notre quiz</button><span class="sub" style="margin:0">Votre DJ le retrouvera dans sa console (onglet Quiz → « Quiz des mariés »).</span></div></div>`;
+    $$('[data-w]').forEach(e => e.oninput = () => { draft.who[+e.dataset.w] = e.value; });
+    $$('[data-wd]').forEach(b => b.onclick = () => { draft.who.splice(+b.dataset.wd, 1); tQuiz(); });
+    $('#wadd').onclick = () => { draft.who.push(''); tQuiz(); const l = $$('[data-w]'); l[l.length - 1].focus(); };
+    $$('[data-qq]').forEach(e => e.oninput = () => { draft.qs[+e.dataset.qq].q = e.value; });
+    $$('[data-qi]').forEach(e => e.oninput = () => { draft.qs[+e.dataset.qi].i = e.value; });
+    $$('[data-qa]').forEach(e => e.oninput = () => { const [n, i] = e.dataset.qa.split(':').map(Number); draft.qs[n].a[i] = e.value; });
+    $$('[data-qc]').forEach(e => e.onchange = () => { draft.qs[+e.dataset.qc].c = Number(e.value); });
+    $$('[data-qd]').forEach(b => b.onclick = () => { draft.qs.splice(+b.dataset.qd, 1); tQuiz(); });
+    $('#qadd').onclick = () => { draft.qs.push({ q: '', a: ['', '', '', ''], c: 0, i: '' }); tQuiz(); const l = $$('[data-qq]'); l[l.length - 1].focus(); };
+    $('#save').onclick = () => {
+      const bad = draft.qs.findIndex(q => q.q.trim() && (!(q.a[q.c] || '').trim() || q.a.filter(a => a.trim()).length < 2));
+      if (bad >= 0) { toast(`Question ${bad + 1} : il faut au moins 2 réponses, et la bonne réponse cochée doit être remplie.`, 4500); return; }
+      const out = { who: draft.who.map(w => w.trim()).filter(Boolean), qs: draft.qs.filter(q => q.q.trim()).map(q => ({ q: q.q.trim(), a: q.a.map(a => a.trim()), c: q.c, i: q.i.trim() })) };
+      const keep = draft; save({ customQuiz: JSON.stringify(out) }, 'Quiz enregistré 💑').then(() => { draft = null; });
+    };
+  }
+
+  function tMusique() {
+    const m = parseJSON(S().music, {});
+    $('#body').innerHTML = `<div class="card"><h3 class="sec" style="margin-top:0">🎵 Vos musiques</h3><p class="sub">Indiquez titre et artiste. Votre DJ voit tout ça directement dans sa console.</p>
+      ${MUSIC_FIELDS.map(([k, l, ph]) => `<div class="field"><span>${l}</span>${['must', 'non', 'notes'].includes(k) ? `<textarea class="input" data-m="${k}" rows="4" maxlength="2000" placeholder="${esc(ph)}">${esc(m[k] || '')}</textarea>` : `<input class="input" data-m="${k}" maxlength="140" placeholder="${esc(ph)}" value="${esc(m[k] || '')}">`}</div>`).join('')}
+      <button class="btn primary" id="save">Enregistrer</button></div>`;
+    $('#save').onclick = () => { const o = {}; $$('[data-m]').forEach(e => { o[e.dataset.m] = e.value.trim(); }); save({ music: JSON.stringify(o) }, 'Musiques envoyées au DJ 🎵'); };
+  }
+
+  async function tSouvenirs() {
+    $('#body').innerHTML = `<div class="card"><div class="empty">Chargement des souvenirs…</div></div>`;
+    try { if (!photosLoaded) { await syncOnce(['photos', 'messages', 'teams']); photosLoaded = true; } } catch (e) { showError(e.message); }
+    if (tab !== 'souvenirs') return;
+    const ph = live('photos').reverse(), ms = live('messages'), tm = Object.values(cache.teams).filter(x => x.status !== 'del' && x.name).sort((a, b) => (b.score || 0) - (a.score || 0));
+    $('#body').innerHTML = `<div class="stat" style="margin-bottom:16px"><div><b>${ph.length}</b><small>photos</small></div><div><b>${ms.length}</b><small>mots doux</small></div><div><b>${ph.reduce((a, p) => a + (p.likes || 0), 0)}</b><small>j'aime</small></div><div><b>${new Set(ph.map(p => p.author).filter(Boolean)).size}</b><small>photographes</small></div></div>
+      <div class="card" style="margin-bottom:16px"><h3 class="sec" style="margin-top:0">📸 Toutes vos photos</h3>
+        <p class="sub">Téléchargez-les toutes d'un coup, en pleine qualité, de préférence depuis un ordinateur. ⚠️ Les photos restent en ligne quelques jours seulement : votre DJ les efface ensuite du serveur.</p>
+        <div class="row" style="margin-bottom:14px"><button class="btn primary" id="zip" ${ph.length ? '' : 'disabled'}>⬇️ Télécharger toutes les photos (.zip)</button><span class="sub" id="zst" style="margin:0"></span></div>
+        <div class="gal">${ph.length ? ph.map(p => `<button data-p="${p.id}" style="background-image:url('${p.thumb || ''}')" title="${esc(p.author || '')}"></button>`).join('') : '<div class="empty" style="grid-column:1/-1">Les photos de vos invités apparaîtront ici pendant et après la soirée.</div>'}</div></div>
+      <div class="card" style="margin-bottom:16px"><h3 class="sec" style="margin-top:0">💌 Votre livre d'or</h3>
+        <div class="row" style="margin-bottom:12px"><button class="btn" id="print" ${ms.length ? '' : 'disabled'}>🖨️ Imprimer / enregistrer en PDF</button><button class="btn" id="txt" ${ms.length ? '' : 'disabled'}>⬇️ Télécharger en texte</button></div>
+        <div class="livre">${ms.length ? ms.map(m => `<div>« ${esc(m.text)} »<small>— ${esc(m.author || 'Anonyme')}</small></div>`).join('') : '<div class="empty">Les mots doux de vos invités apparaîtront ici.</div>'}</div></div>
+      ${tm.length ? `<div class="card"><h3 class="sec" style="margin-top:0">🏆 Le quiz de la soirée</h3>${tm.slice(0, 15).map((x, i) => `<div class="gq-rank"><i>${['🥇', '🥈', '🥉'][i] || i + 1}</i><b>${esc(x.name)}</b><em>${x.score || 0}</em></div>`).join('')}</div>` : ''}`;
+    $$('[data-p]').forEach(b => b.onclick = async () => {
+      const p = cache.photos[b.dataset.p]; const lb = document.createElement('div'); lb.className = 'lb';
+      lb.innerHTML = `<img src="${p.thumb}" alt=""><div class="meta">${esc(p.caption || '')} ${p.author ? '— ' + esc(p.author) : ''}</div><div class="row"><a class="btn primary" id="dl" download="${esc(Saver.fileName(p))}">⬇ Enregistrer</a><button class="btn" id="cl">Fermer</button></div>`;
+      document.body.appendChild(lb); lb.onclick = e => { if (e.target === lb) lb.remove(); }; $('#cl', lb).onclick = () => lb.remove();
+      const full = await photoSrc(p.id); if (full && document.body.contains(lb)) { $('img', lb).src = full; $('#dl', lb).href = full; } else $('#dl', lb).href = p.thumb;
+    });
+    const livreTxt = () => ms.map(m => `« ${m.text} »\n— ${m.author || 'Anonyme'}\n`).join('\n');
+    if ($('#txt')) $('#txt').onclick = () => downloadBlob(new Blob([livreTxt()], { type: 'text/plain;charset=utf-8' }), `livre-d-or-${EVENT}.txt`);
+    if ($('#print')) $('#print').onclick = () => {
+      const s = S(), w = window.open('', '_blank'); if (!w) { toast('Autorisez les fenêtres pour imprimer'); return; }
+      w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Livre d'or — ${esc(s.names)}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${design().gf}&display=swap">
+        <style>body{font-family:${design().fonts.b};color:#3a2e26;max-width:760px;margin:40px auto;padding:0 24px}h1{font-family:${design().fonts.d};font-weight:500;text-align:center;font-size:44px;margin:0}.d{text-align:center;color:#8a7a6a;margin:6px 0 34px}
+        .m{break-inside:avoid;border-bottom:1px solid #e8dccd;padding:16px 0;font-family:${design().fonts.s};font-size:24px;line-height:1.3}.m small{display:block;font-family:${design().fonts.b};font-size:13px;color:#8a7a6a;margin-top:6px}</style></head>
+        <body><h1>${esc(s.names || 'Notre mariage')}</h1><div class="d">Livre d'or${s.date ? ' · ' + esc(fmtDate(s.date)) : ''}</div>${ms.map(m => `<div class="m">« ${esc(m.text)} »<small>— ${esc(m.author || 'Anonyme')}</small></div>`).join('')}
+        <script>setTimeout(()=>print(),900)<\/script></body></html>`);
+      w.document.close();
+    };
+    if ($('#zip')) $('#zip').onclick = async () => {
+      const btn = $('#zip'), st = $('#zst'); btn.disabled = true; const files = [], enc = new TextEncoder(); let fail = 0;
+      for (let i = 0; i < ph.length; i++) {
+        st.textContent = `Préparation ${i + 1} / ${ph.length}…`;
+        try { const d = await store.get('photoData', ph[i].id); if (!d || !d.data) { fail++; continue; } const buf = new Uint8Array(await (await fetch(d.data)).arrayBuffer()); files.push({ name: Saver.fileName(ph[i], i + 1), data: buf }); }
+        catch (e) { fail++; }
+      }
+      if (ms.length) files.push({ name: 'livre-d-or.txt', data: enc.encode(livreTxt()) });
+      st.textContent = 'Création du fichier…';
+      downloadBlob(makeZip(files), `photos-${EVENT}.zip`);
+      st.textContent = `✓ ${files.length - (ms.length ? 1 : 0)} photo(s) téléchargée(s)${fail ? ` · ${fail} introuvable(s)` : ''}`; btn.disabled = false;
+    };
+  }
+
+  syncOnce(['settings']).then(render).catch(e => { showError(e.message); render(); });
+}
+
 /* =====================================================================
    8. CONSOLE DJ
    ===================================================================== */
@@ -1791,13 +2047,13 @@ function viewConsole() {
       <div class="console">
         <div class="c-top"><div><span class="live">EN DIRECT</span> <span class="kicker" style="margin-left:6px">Console DJ · ${esc(EVENT)}</span><h1>${namesHtml(s.names)}</h1></div>
           <div class="row"><a class="btn primary" href="${viewUrl('ecran')}" target="_blank" rel="noopener">📺 Ouvrir le grand écran</a><a class="btn" href="${viewUrl('invite')}" target="_blank" rel="noopener">📱 Page invités</a></div></div>
-        <div class="c-tabs">${[['direct', '🎛️ Direct'], ['photos', '📸 Photos & mots'], ['perso', '🎨 Design & mariés'], ['defis', '🎯 Défis'], ['quiz', '🏆 Quiz'], ['qr', '🔗 QR & installation']]
+        <div class="c-tabs">${[['direct', '🎛️ Direct'], ['photos', '📸 Photos & mots'], ['perso', '🎨 Design & mariés'], ['defis', '🎯 Défis'], ['quiz', '🏆 Quiz'], ['maries', '💍 Espace mariés'], ['qr', '🔗 QR & installation']]
           .map(([k, l]) => `<button class="btn sm ${tab === k ? 'on' : ''}" data-t="${k}">${l}${k === 'photos' && p ? `<span class="n">${p}</span>` : ''}</button>`).join('')}</div>
         <div id="body"></div>
       </div>`;
     $$('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; lsSet('ecran:ctab2', tab); render(); });
     if ($('#wipe')) $('#wipe').onclick = e => { e.preventDefault(); if (confirm('Effacer toutes les données de démo ?')) { store.wipe(); location.reload(); } };
-    ({ direct: tabDirect, photos: tabPhotos, defis: tabDefis, quiz: tabQuiz, perso: tabPerso, qr: tabQR }[tab] || tabDirect)();
+    ({ direct: tabDirect, photos: tabPhotos, defis: tabDefis, quiz: tabQuiz, perso: tabPerso, maries: tabMaries, qr: tabQR }[tab] || tabDirect)();
   }
   const act = async fn => { try { await fn(); await syncOnce(['settings', 'photos', 'messages', 'teams', 'reactions']); render(); } catch (e) { showError(e.message); } };
   const pinNow = (t, id) => act(() => saveSettings({ pinned: t + ':' + id, pinnedAt: Date.now(), mode: ['auto', 'vedette', 'mots', 'mur'].includes(S().mode) ? S().mode : 'auto' })).then(() => toast('À l\'écran dans un instant ✨'));
@@ -1831,7 +2087,7 @@ function viewConsole() {
         <p class="sub" style="margin:0 0 12px">Si un téléphone ou le grand écran semble bloqué ou affiche une ancienne version : ce bouton recharge à distance toutes les pages invités. Sur le grand écran en plein écran, un petit bandeau apparaît : appuyez sur <b>R</b>.</p>
         <button class="btn" id="reloadall">🔄 Mettre à jour tous les écrans et téléphones</button> <span class="sub" style="margin:0 0 0 10px">Version ${APP_VERSION}</span></div>
       <div class="card" style="margin-top:16px;border-color:#e2574c"><h3 class="sec" style="margin-top:0">🌙 Fin de soirée</h3>
-        <p class="sub" style="margin:0 0 12px">Efface du serveur toutes les photos, les mots doux et les équipes de cette soirée, pour libérer l'espace gratuit (1 Go). Les prénoms et le design sont gardés.<br><b>Avant :</b> vérifiez que les photos sont bien dans le dossier de sauvegarde de l'ordinateur du grand écran.</p>
+        <p class="sub" style="margin:0 0 12px">Efface du serveur toutes les photos, les mots doux et les équipes de cette soirée, pour libérer l'espace gratuit (1 Go). Les prénoms et le design sont gardés.<br><b>Avant :</b> vérifiez que les photos sont bien dans le dossier de sauvegarde de l'ordinateur du grand écran, et que les mariés ont téléchargé leur ZIP depuis leur espace (onglet « Souvenirs »).</p>
         <button class="btn danger" id="endwipe">🗑️ Effacer toutes les photos du serveur</button> <span class="sub" id="wipest" style="margin:0 0 0 10px"></span></div>`;
     $$('[data-m]').forEach(b => b.onclick = () => act(() => saveSettings({ mode: b.dataset.m })));
     $$('[data-pre]').forEach(b => b.onclick = () => { $('#ann').value = b.dataset.pre; });
@@ -1993,8 +2249,8 @@ Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservée
     }
     $('#body').innerHTML = `
       <div class="card" style="margin-bottom:16px"><h3 class="sec">📚 Bibliothèque de quiz</h3><p class="sub">15 quiz prêts à jouer. La question s'affiche sur le grand écran avec un chrono, les invités rejoignent leur équipe (ou jouent en solo) sur leur téléphone et touchent leur réponse : chaque bonne réponse donne 1 point à leur équipe, automatiquement. Vous pouvez aussi ajouter des points à la main ci-dessous.</p>
-        <div class="row" style="margin-bottom:12px">${QUIZ_CATS.map(([k, l]) => `<button class="btn sm ${cat === k ? 'on' : ''}" data-qc="${k}">${l}</button>`).join('')}</div>
-        <div class="qlib">${QUIZZES.filter(q => q.cat === cat).map(q => `<button data-qz="${q.id}" class="${s.quizId === q.id ? 'on' : ''}"><span class="e">${q.emoji}</span><b>${esc(q.title)}</b><small>${esc(q.desc)} · ${q.qs.length} questions</small></button>`).join('')}</div></div>
+        <div class="row" style="margin-bottom:12px">${QUIZ_CATS.concat(customQuizzes().length ? [['perso', '💑 Quiz des mariés']] : []).map(([k, l]) => `<button class="btn sm ${cat === k ? 'on' : ''}" data-qc="${k}">${l}</button>`).join('')}</div>
+        <div class="qlib">${allQuizzes().filter(q => q.cat === cat).map(q => `<button data-qz="${q.id}" class="${s.quizId === q.id ? 'on' : ''}"><span class="e">${q.emoji}</span><b>${esc(q.title)}</b><small>${esc(q.desc)} · ${q.qs.length} questions</small></button>`).join('')}</div></div>
       ${anim}
       <div class="card"><h3 class="sec">🏆 Équipes & points</h3>
       <div class="row" style="margin-bottom:14px;flex-wrap:nowrap"><input class="input" id="tn" placeholder="Nom de l'équipe (ex. Table des témoins)"><button class="btn primary" id="add">Ajouter</button></div>
@@ -2023,6 +2279,24 @@ Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservée
     $('#showq').onclick = () => act(() => saveSettings({ mode: 'quiz' }));
     $('#rz').onclick = () => { if (confirm('Remettre tous les scores à 0 ?')) act(async () => { for (const x of t) await store.write('teams', x.id, { score: 0 }, true); }).then(() => toast('Scores remis à zéro ✓')); };
     $('#tdel').onclick = () => { if (confirm('Supprimer toutes les équipes et joueurs solo ?')) act(async () => { for (const x of t) await store.write('teams', x.id, { status: 'del', name: '', score: 0 }, true); }).then(() => toast('Équipes supprimées ✓')); };
+  }
+  function tabMaries() {
+    const s = S(), code = String(s.coupleCode || ''), link = viewUrl('maries'), m = parseJSON(s.music, {}), cq = parseJSON(s.customQuiz, {});
+    const msg = `Bonjour ${s.names || ''} !\n\nVoici votre espace mariés pour préparer l'animation de votre soirée :\n${link}\nVotre code : ${code}\n\nVous pourrez y choisir le style de l'écran, écrire vos défis photo et votre propre quiz, m'indiquer vos musiques… puis récupérer toutes les photos de vos invités après la fête.\n\nÀ très vite !\n${CONFIG.brand}`;
+    $('#body').innerHTML = `<div class="card" style="margin-bottom:16px"><h3 class="sec" style="margin-top:0">🔑 Accès des mariés</h3>
+        <p class="sub">Les mariés préparent eux-mêmes leur soirée (style, défis, quiz, musiques) et récupèrent leurs photos après. Choisissez un code, puis envoyez-leur le message.</p>
+        <div class="row" style="flex-wrap:nowrap;max-width:460px"><input class="input" id="cc" maxlength="12" inputmode="numeric" value="${esc(code)}" placeholder="ex. 482913" style="font-size:20px;letter-spacing:.2em;text-align:center"><button class="btn" id="ccgen">🎲 Générer</button><button class="btn primary" id="ccsave">Enregistrer</button></div>
+        ${code ? `<div class="field" style="margin:16px 0 0"><span>Message à envoyer aux mariés (SMS, WhatsApp, e-mail)</span><textarea class="input" id="ccmsg" rows="9" readonly style="font-size:14px">${esc(msg)}</textarea></div>
+        <div class="row" style="margin-top:10px"><button class="btn primary" id="cccopy">📋 Copier le message</button><a class="btn" href="${link}" target="_blank" rel="noopener">👀 Ouvrir leur espace</a><button class="btn danger" id="ccoff">Fermer l'accès</button></div>` : '<p class="sub" style="margin:12px 0 0">⚪ Espace fermé tant qu\'aucun code n\'est enregistré.</p>'}</div>
+      <div class="grid2"><div class="card"><h3 class="sec" style="margin-top:0">🎵 Leurs musiques</h3>
+        <div class="musicv">${MUSIC_FIELDS.filter(([k]) => (m[k] || '').trim()).map(([k, l]) => `<div><b>${l}</b>${esc(m[k])}</div>`).join('') || '<div class="empty">Pas encore rempli.</div>'}</div></div>
+        <div class="card"><h3 class="sec" style="margin-top:0">💑 Leur quiz</h3><p class="sub" style="margin:0">${(cq.qs || []).length} question(s) à choix · ${(cq.who || []).length} question(s) « Qui des deux ? »</p>
+          ${customQuizzes().length ? `<p class="sub" style="margin:10px 0 0">À lancer depuis l'onglet <b>Quiz</b>, catégorie « 💑 Quiz des mariés ».</p>` : ''}</div></div>`;
+    $('#ccgen').onclick = () => { $('#cc').value = String(Math.floor(100000 + Math.random() * 900000)); };
+    $('#ccsave').onclick = () => { const v = $('#cc').value.trim().replace(/\s+/g, ''); if (v.length < 4) { toast('Code trop court : 4 caractères minimum'); return; } act(() => saveSettings({ coupleCode: v })).then(() => toast('Code enregistré ✓')); };
+    $('#cc').onkeydown = e => { if (e.key === 'Enter') $('#ccsave').click(); };
+    if ($('#cccopy')) $('#cccopy').onclick = async () => { try { await navigator.clipboard.writeText(msg); toast('Message copié 📋 Collez-le dans un SMS ou un e-mail'); } catch (e) { $('#ccmsg').select(); document.execCommand('copy'); toast('Message copié 📋'); } };
+    if ($('#ccoff')) $('#ccoff').onclick = () => { if (confirm('Fermer l\'accès à l\'espace mariés ?')) act(() => saveSettings({ coupleCode: '' })); };
   }
   function tabQR() {
     const gu = viewUrl('invite'), sc = viewUrl('ecran');
@@ -2063,7 +2337,7 @@ Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservée
 /* =====================================================================
    9. ROUTAGE
    ===================================================================== */
-({ ecran: viewScreen, invite: viewGuest, console: viewConsole }[VIEW] || viewHome)();
+({ ecran: viewScreen, invite: viewGuest, console: viewConsole, maries: viewCouple }[VIEW] || viewHome)();
 </script>
 </body>
 </html>
