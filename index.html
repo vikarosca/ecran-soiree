@@ -350,6 +350,31 @@ a.btn{text-decoration:none;display:inline-block}
 .lb{position:fixed;inset:0;z-index:150;background:rgba(10,6,3,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;color:#fff}
 .lb img{max-width:100%;max-height:70vh;border-radius:10px}
 .lb .meta{margin:12px 0;text-align:center;font-family:var(--fs);font-size:24px}
+/* ---- quiz sur le téléphone invité ---- */
+.gq-banner{position:fixed;left:12px;right:12px;top:12px;z-index:70;display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--onaccent);border:0;border-radius:18px;padding:14px 16px;font-size:16px;font-weight:700;box-shadow:0 14px 34px var(--shadow);cursor:pointer;animation:fadeup .5s ease both;text-align:left}
+.gq-banner span{margin-left:auto;background:rgba(255,255,255,.25);padding:6px 12px;border-radius:20px;font-size:14px}
+.gq{padding-bottom:90px}
+.gq-top{display:flex;justify-content:space-between;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:4px 0 12px}
+.gq-q{font-family:var(--fd);font-size:25px;line-height:1.2;text-align:center;color:var(--ink);margin:0 0 16px;animation:fadeup .6s ease both}
+.gq-ch{display:grid;gap:10px}
+.gq-ch.two{grid-template-columns:1fr 1fr}
+.gq-c{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:var(--rad);padding:14px;font-size:17px;line-height:1.2;cursor:pointer;transition:all .3s;box-shadow:0 6px 16px rgba(0,0,0,.06)}
+.gq-ch.two .gq-c{flex-direction:column;justify-content:center;text-align:center;padding:22px 10px;font-family:var(--fs);font-size:24px}
+.gq-c b{width:36px;height:36px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--onaccent);font-size:16px}
+.gq-c.me{border-color:var(--accent);box-shadow:0 0 0 4px rgba(var(--glow),.35);transform:scale(1.02)}
+.gq-c.ok{border-color:#3fbf6f;background:rgba(63,191,111,.12)}.gq-c.ok b{background:#3fbf6f;color:#fff}
+.gq-c.ko{border-color:#e2574c;background:rgba(226,87,76,.10)}.gq-c.ko b{background:#e2574c;color:#fff}
+.gq-c.no{opacity:.45}
+.gq-c:disabled{cursor:default}
+.gq-foot{text-align:center;margin-top:16px;font-size:16px;color:var(--muted);min-height:26px}
+.gq-foot .tm{font-weight:800;font-size:26px;color:var(--accent);font-variant-numeric:tabular-nums}
+.gq-foot .tm.low{color:#e2574c}
+.gq-res{text-align:center;font-family:var(--fs);font-size:30px;color:var(--accent);margin-top:14px;animation:fadeup .5s ease both}
+.gq-info{background:var(--card);border:1px solid var(--line);border-radius:var(--rad);padding:12px 14px;margin-top:10px;font-size:15px;color:var(--ink)}
+.gq-score{text-align:center;font-size:14px;color:var(--muted);margin-top:14px}
+.gq-rank{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:var(--rad);padding:12px 14px;margin-bottom:8px;font-size:17px}
+.gq-rank i{font-style:normal;font-weight:800;color:var(--accent);width:28px}
+.gq-rank em{font-style:normal;margin-left:auto;font-weight:800;font-size:20px;color:var(--accent)}
 .reactbar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:40px;padding:8px 10px;box-shadow:0 12px 34px var(--shadow);z-index:60}
 .reactbar button{border:0;background:transparent;font-size:28px;width:50px;height:50px;border-radius:50%;cursor:pointer;transition:transform .12s}
 .reactbar button:active{transform:scale(1.35)}
@@ -1380,7 +1405,7 @@ function viewGuest() {
     $('#app').innerHTML = `${DEMO ? '<div class="demo-banner">Mode démo</div>' : ''}${headerDeco()}
       <div class="guest"><div class="g-hero"><div class="kicker">${esc(s.subtitle)}</div><div class="names">${namesHtml(s.names)}</div>${s.date ? `<div class="date">${esc(fmtDate(s.date))}</div>` : ''}</div>
       <div id="pane">${inner}</div></div>
-      ${s.reactions ? `<div class="reactbar"><span class="lbl">Réagissez en direct sur le grand écran</span>${REACTS.map(([f, e]) => `<button data-r="${f}" aria-label="${f}">${e}</button>`).join('')}</div>` : ''}`;
+      ${s.reactions && view !== 'quiz' ? `<div class="reactbar"><span class="lbl">Réagissez en direct sur le grand écran</span>${REACTS.map(([f, e]) => `<button data-r="${f}" aria-label="${f}">${e}</button>`).join('')}</div>` : ''}`;
     $$('[data-r]').forEach(b => b.onclick = ev => react(b.dataset.r, b.textContent, ev));
     $$('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
   }
@@ -1392,6 +1417,7 @@ function viewGuest() {
       shell(`${name ? `<div class="hello">Bonsoir ${esc(name)} ✨</div>` : `<div class="card" style="margin:6px 0 16px"><div class="field" style="margin:0"><span>Comment vous appelez-vous ?</span>
           <div class="row" style="flex-wrap:nowrap"><input class="input" id="nm" maxlength="40" placeholder="ex. Tata Monique"><button class="btn primary" id="okn">OK</button></div></div></div>`}
         <div class="acts">
+          ${quizLive() ? `<button class="act main" data-go="quiz" style="background:linear-gradient(135deg,var(--accent2),var(--accent))"><span class="e">🎤</span><b>Le quiz est en cours !</b><small>Répondez depuis votre téléphone</small></button>` : ''}
           <button class="act main" data-go="photo"><span class="e">📸</span><b>Partager une photo</b><small>Elle s'affiche sur le grand écran</small></button>
           <button class="act" data-go="mot"><span class="e">💌</span><b>Mot doux</b><small>Pour les mariés</small></button>
           ${hasDefis ? `<button class="act" data-go="defis"><span class="e">🎯</span><b>Défis photo</b><small>${challenges().length} défis à relever</small></button>` : ''}
@@ -1427,12 +1453,113 @@ function viewGuest() {
       $$('[data-d]').forEach(b => b.onclick = () => go('photo', challenges()[+b.dataset.d]));
     }
     if (view === 'fil') renderFil();
+    if (view === 'quiz') renderQuiz();
     if (view === 'merci') {
       shell(`<div class="success"><div class="e">${defi === '💌' ? '💌' : '🎉'}</div><h2>Merci ${esc(me())} !</h2>
         <p style="color:var(--muted)">${S().moderation ? 'Votre envoi apparaîtra sur le grand écran dès qu\'il sera validé.' : 'Regardez le grand écran, ça arrive !'}</p>
         <div class="row" style="justify-content:center;margin-top:18px"><button class="btn primary" data-go="photo">📸 Une autre photo</button><button class="btn" data-go="home">Accueil</button></div></div>`);
       defi = ''; confetti();
     }
+  }
+
+  /* ----- quiz en direct sur le téléphone ----- */
+  const quizLive = () => { const m = S().mode; return (m === 'quizq' && !!quizCur()) || m === 'quiz'; };
+  const qaKey = (qid, i) => `ecran:qa:${EVENT}:${qid}:${i}`;
+  let qTimer = null, qSig = '', lastMode = '';
+  function quizScore(quiz) {
+    let ok = 0, done = 0; const s = S();
+    quiz.qs.forEach((it, i) => {
+      const a = lsGet(qaKey(quiz.id, i), ''); if (a === '') return;
+      if (s.quizId === quiz.id && Number(s.quizQ) === i && s.quizPhase !== 'a') return;
+      const good = quiz.who ? (s.quizId === quiz.id && s.quizQ === i && s.quizPick !== '' ? Number(s.quizPick) : Number(lsGet(qaKey(quiz.id, i) + ':c', '-1'))) : it[2];
+      if (good >= 0) { done++; if (Number(a) === good) ok++; }
+    });
+    return { ok, done };
+  }
+  function renderQuiz() {
+    const s = S();
+    if (s.mode === 'quiz') {
+      const t = Object.values(cache.teams).filter(x => x.status !== 'del').sort((a, b) => (b.score || 0) - (a.score || 0));
+      shell(`<button class="back" data-go="home">← Retour</button><div class="gq"><h2 class="hand" style="font-size:34px;margin:0 0 12px;color:var(--accent);text-align:center">🏆 Le classement</h2>
+        ${t.length ? t.slice(0, 15).map((x, i) => `<div class="gq-rank"><i>${['🥇', '🥈', '🥉'][i] || i + 1}</i><b>${esc(x.name)}</b><em>${x.score || 0}</em></div>`).join('') : '<div class="empty">Le classement arrive…</div>'}</div>`);
+      return;
+    }
+    const c = quizCur();
+    if (s.mode !== 'quizq' || !c) {
+      shell(`<button class="back" data-go="home">← Retour</button><div class="success"><div class="e">🎤</div><h2>Prochaine question…</h2><p style="color:var(--muted)">Restez sur cette page, elle s'affichera ici automatiquement.</p></div>`);
+      return;
+    }
+    const { quiz, i, item } = c, who = !!quiz.who, reveal = s.quizPhase === 'a';
+    const choices = who ? whoNames() : item[1];
+    const good = who ? (s.quizPick === '' ? -1 : Number(s.quizPick)) : item[2];
+    const mine = lsGet(qaKey(quiz.id, i), '');
+    if (reveal && who && good >= 0) lsSet(qaKey(quiz.id, i) + ':c', String(good));
+    const sec = Number(s.quizSec) || 0, over = sec && Date.now() > s.quizAt + sec * 1000;
+    const locked = reveal || over;
+    const cls = k => reveal && good >= 0 ? (k === good ? 'ok' : (String(k) === mine ? 'ko' : 'no')) : (String(k) === mine ? 'me' : '');
+    let res = '';
+    if (reveal && good >= 0) res = mine === '' ? `<div class="gq-res">La réponse est ${who ? esc(choices[good]) : 'ABCD'[good]} !</div>` : Number(mine) === good ? `<div class="gq-res">🎉 Bravo !</div>` : `<div class="gq-res">😅 Raté…</div>`;
+    const sc = quizScore(quiz);
+    shell(`<button class="back" data-go="home">← Accueil</button><div class="gq">
+      <div class="gq-top"><span>${quiz.emoji} ${esc(quiz.title)}</span><span>${i + 1} / ${quiz.qs.length}</span></div>
+      <div class="gq-q">${esc(who ? item : item[0])}</div>
+      <div class="gq-ch ${choices.length === 2 ? 'two' : ''}">${choices.map((ch, k) => `<button class="gq-c ${cls(k)}" data-qa="${k}" ${locked ? 'disabled' : ''}><b>${who ? (k ? '💙' : '💗') : 'ABCD'[k]}</b><span>${esc(ch)}</span></button>`).join('')}</div>
+      <div class="gq-foot" id="gqf"></div>${res}
+      ${reveal && !who && item[3] ? `<div class="gq-info">💡 ${esc(item[3])}</div>` : ''}
+      ${sc.done ? `<div class="gq-score">Votre score perso : <b>${sc.ok} / ${sc.done}</b></div>` : ''}</div>`);
+    $$('[data-qa]').forEach(b => b.onclick = () => { if (b.disabled) return; if (navigator.vibrate) navigator.vibrate(15); lsSet(qaKey(quiz.id, i), b.dataset.qa); renderQuiz(); });
+    clearInterval(qTimer); qTimer = setInterval(qTick, 250); qTick();
+  }
+  function qTick() {
+    const f = document.getElementById('gqf'); if (!f || view !== 'quiz') { clearInterval(qTimer); return; }
+    const s = S(); if (s.quizPhase === 'a') { f.innerHTML = ''; return; }
+    const mine = (() => { const c = quizCur(); return c ? lsGet(qaKey(c.quiz.id, c.i), '') : ''; })();
+    const sec = Number(s.quizSec) || 0;
+    if (!sec) { f.innerHTML = mine === '' ? 'Touchez votre réponse 👆' : '✅ Réponse enregistrée, attendez la révélation…'; return; }
+    const left = Math.ceil((s.quizAt + sec * 1000 - Date.now()) / 1000);
+    if (left > 0) f.innerHTML = `<span class="tm ${left <= 5 ? 'low' : ''}">⏱ ${left}</span>${mine === '' ? '' : '<br>✅ Réponse enregistrée'}`;
+    else { f.innerHTML = '⏰ Temps écoulé !'; $$('[data-qa]').forEach(b => b.disabled = true); }
+  }
+  function quizBanner(show) {
+    let b = document.getElementById('gqb');
+    if (!show) { if (b) b.remove(); return; }
+    if (b) return;
+    b = document.createElement('button'); b.id = 'gqb'; b.className = 'gq-banner';
+    b.innerHTML = '🎤 Le quiz commence !<span>Jouer →</span>';
+    b.onclick = () => { b.remove(); go('quiz'); };
+    document.body.appendChild(b);
+  }
+  function onLive(changed) {
+    const s = S();
+    if (changed.includes('settings')) applyTheme();
+    const isLive = quizLive();
+    const c = quizCur();
+    const sig = [s.mode, s.quizId, s.quizQ, s.quizPhase, s.quizPick, s.quizAt, s.quizSec].join('|');
+    const sigChanged = sig !== qSig; qSig = sig;
+    const started = isLive && lastMode !== s.mode && (lastMode === '' ? false : true);
+    lastMode = s.mode;
+    if (view === 'quiz') {
+      if (!isLive) { go('home'); return; }
+      if (sigChanged || (s.mode === 'quiz' && changed.includes('teams'))) renderQuiz();
+      return;
+    }
+    if (isLive) {
+      // bascule automatique si l'invité ne fait rien d'important, sinon bandeau
+      if (started && ['home', 'fil', 'merci', 'defis'].includes(view)) { quizBanner(false); go('quiz'); return; }
+      quizBanner(true);
+    } else quizBanner(false);
+    if (view === 'home' && changed.includes('settings')) render();
+  }
+  function liveLoop() {
+    let busy = false;
+    const run = async () => {
+      if (busy || document.hidden) return; busy = true;
+      try { const ch = await syncOnce(['settings', 'teams']); if (ch.length) onLive(ch); } catch (e) {}
+      busy = false;
+    };
+    (async function loop() { await run(); setTimeout(loop, S().mode === 'quizq' || S().mode === 'quiz' ? 2500 : 6000); })();
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) run(); });
+    if (DEMO) window.addEventListener('storage', run);
   }
   function takeName() { const n = $('#nm2'); if (n && n.value.trim()) lsSet('ecran:author', n.value.trim().slice(0, 40)); return me(); }
   async function sendPhotos() {
@@ -1499,7 +1626,11 @@ function viewGuest() {
       c.style.animationDuration = rnd(1.8, 3.4) + 's'; c.style.animationDelay = rnd(0, .5) + 's'; c.style.borderRadius = i % 3 ? '2px' : '50%'; document.body.appendChild(c); setTimeout(() => c.remove(), 4200); }
   }
   applyTheme(); render();
-  syncOnce(['settings']).then(() => { applyTheme(); if (view === 'home') render(); }).catch(e => showError(e.message));
+  syncOnce(['settings', 'teams']).then(() => {
+    applyTheme(); const s = S(); lastMode = s.mode; qSig = [s.mode, s.quizId, s.quizQ, s.quizPhase, s.quizPick, s.quizAt, s.quizSec].join('|');
+    if (quizLive()) go('quiz'); else if (view === 'home') render();
+    liveLoop();
+  }).catch(e => { showError(e.message); liveLoop(); });
 }
 
 /* =====================================================================
@@ -1693,7 +1824,7 @@ function viewConsole() {
           <span class="sub" style="margin:0 0 0 auto">${live ? (s.quizPhase === 'a' ? '🟢 Réponse à l\'écran' : '🟢 Question à l\'écran') : '⚪ Pas encore à l\'écran'}</span></div></div>`;
     }
     $('#body').innerHTML = `
-      <div class="card" style="margin-bottom:16px"><h3 class="sec">📚 Bibliothèque de quiz</h3><p class="sub">15 quiz prêts à jouer. La question s'affiche sur le grand écran avec un chrono, les tables répondent sur papier ou à main levée, puis vous révélez la réponse et donnez les points ci-dessous.</p>
+      <div class="card" style="margin-bottom:16px"><h3 class="sec">📚 Bibliothèque de quiz</h3><p class="sub">15 quiz prêts à jouer. La question s'affiche sur le grand écran avec un chrono, les invités voient aussi la question sur leur téléphone et touchent leur réponse (score perso). Révélez la réponse, puis donnez les points aux équipes ci-dessous.</p>
         <div class="row" style="margin-bottom:12px">${QUIZ_CATS.map(([k, l]) => `<button class="btn sm ${cat === k ? 'on' : ''}" data-qc="${k}">${l}</button>`).join('')}</div>
         <div class="qlib">${QUIZZES.filter(q => q.cat === cat).map(q => `<button data-qz="${q.id}" class="${s.quizId === q.id ? 'on' : ''}"><span class="e">${q.emoji}</span><b>${esc(q.title)}</b><small>${esc(q.desc)} · ${q.qs.length} questions</small></button>`).join('')}</div></div>
       ${anim}
