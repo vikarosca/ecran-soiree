@@ -12,7 +12,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 /* =====================================================================
-   ÉCRAN DE SOIRÉE v3 — Universal DJ Normandie
+   ÉCRAN DE SOIRÉE v4 — Universal DJ Normandie
    5 designs (Prestige · Guinguette · Bohème · Pop Party · Disco), 3 palettes chacun
      ?v=ecran&e=CODE    → grand écran
      ?v=invite&e=CODE   → page invités
@@ -278,6 +278,36 @@ a.btn{text-decoration:none;display:inline-block}
 [data-design="disco"] .annonce .t,[data-design="disco"] .defi .t,[data-design="disco"] .quiz h2{text-shadow:0 0 2vh rgba(var(--glow),.9)}
 [data-design="disco"] .stats span{background:#0c0614;color:#fff;border-color:var(--accent);box-shadow:0 0 1.2vh rgba(var(--glow),.6)}
 
+
+/* ---- quiz en direct (grand écran) ---- */
+.qz{position:absolute;inset:0;padding:9vh 7vw 8vh;display:flex;flex-direction:column;justify-content:center;gap:3.6vh}
+.qz-top{display:flex;justify-content:space-between;font-size:1.5vw;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.qz-q{font-family:var(--fd);font-size:4.4vw;line-height:1.12;color:var(--ink);text-align:center;animation:fadeup .9s ease both}
+.qz-ch{display:grid;grid-template-columns:1fr 1fr;gap:2.4vh 2vw}
+.qz-c{display:flex;align-items:center;gap:1.4vw;background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:var(--rad);padding:2.2vh 2vw;font-size:2.4vw;line-height:1.15;box-shadow:0 1.6vh 4vh var(--shadow);transition:all .7s;animation:fadeup .9s ease both}
+.qz-c:nth-child(2){animation-delay:.12s}.qz-c:nth-child(3){animation-delay:.24s}.qz-c:nth-child(4){animation-delay:.36s}
+.qz-c b{width:5.4vh;height:5.4vh;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--onaccent);font-size:2.6vh;flex:none}
+.qz-ch.two{grid-template-columns:1fr 1fr}.qz-ch.two .qz-c{font-size:4vw;justify-content:center;padding:4vh 2vw;font-family:var(--fs)}
+.qz-c.ok{border-color:#3fbf6f;box-shadow:0 0 0 .7vh rgba(63,191,111,.4),0 1.6vh 4vh var(--shadow);transform:scale(1.05)}
+.qz-c.ok b{background:#3fbf6f;color:#fff}
+.qz-c.no{opacity:.3;transform:scale(.97)}
+.qz-foot{text-align:center;font-size:2.6vw;color:var(--muted);min-height:5vh;font-family:var(--fs)}
+.qz-foot .tm{display:inline-block;font-family:var(--fb);font-weight:700;font-size:3vw;color:var(--accent);font-variant-numeric:tabular-nums}
+.qz-foot .tm.low{color:#e2574c;animation:pulse .6s ease-in-out infinite}
+.savebadge{position:absolute;left:2.4vw;bottom:2.8vh;z-index:25;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:3vh;padding:.8vh 1.4vw;font-size:1.7vh;font-weight:700;opacity:0;transition:opacity .6s;box-shadow:0 1vh 3vh var(--shadow)}
+.screen.cur .savebadge,.savebadge.flash{opacity:.95}
+.start .saveinfo{font-size:1.8vh;opacity:.9;max-width:60vw;margin-top:-1vh}
+/* ---- console : bibliothèque de quiz ---- */
+.qlib{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.qlib button{border:2px solid var(--line);border-radius:16px;padding:14px;cursor:pointer;background:var(--card);text-align:left;color:var(--ink)}
+.qlib button.on{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--glow),.35)}
+.qlib .e{font-size:28px;display:block;margin-bottom:6px}
+.qlib b{display:block;font-size:15px}
+.qlib small{color:var(--muted);font-size:12px}
+.qans{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qans div{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px}
+.qans div.good{border-color:#3fbf6f;background:rgba(63,191,111,.12);font-weight:700}
+
 /* =========================== INVITÉS =========================== */
 .guest{max-width:540px;margin:0 auto;padding:0 16px 150px;position:relative}
 .g-hero{text-align:center;padding:4px 0 10px}
@@ -470,6 +500,191 @@ const DESIGNS = {
     }
   }
 };
+/* =====================================================================
+   BIBLIOTHÈQUE DE QUIZ — [question, [A, B, C, D], index bonne réponse, anecdote]
+   ===================================================================== */
+const QUIZZES = [
+  /* ---------------- MARIÉS ---------------- */
+  { id: 'traditions', cat: 'maries', emoji: '💍', title: 'Les traditions du mariage', desc: 'Alliances, pièce montée, noces…', qs: [
+    ['À quel doigt porte-t-on traditionnellement l\'alliance en France ?', ['Annulaire droit', 'Annulaire gauche', 'Majeur gauche', 'Index droit'], 1, 'Selon la légende, une veine relierait directement ce doigt au cœur.'],
+    ['Comment s\'appelle le gâteau traditionnel du mariage français ?', ['Le Paris-Brest', 'Le fraisier', 'La pièce montée', 'La bûche'], 2, 'On l\'appelle aussi « croquembouche ».'],
+    ['De quoi est faite une pièce montée classique ?', ['De choux caramélisés', 'De macarons', 'De meringues', 'De madeleines'], 0, 'Les choux sont garnis de crème pâtissière et collés au caramel.'],
+    ['Que lance la mariée à ses amies célibataires ?', ['Sa chaussure', 'Son voile', 'Sa jarretière', 'Son bouquet'], 3, 'Celle qui l\'attrape serait la prochaine à se marier !'],
+    ['Combien d\'années de mariage fête-t-on aux noces d\'or ?', ['25 ans', '40 ans', '50 ans', '60 ans'], 2, 'Les noces de diamant, c\'est 60 ans.'],
+    ['Et les noces d\'argent ?', ['10 ans', '25 ans', '30 ans', '20 ans'], 1, 'Les noces de coton, elles, se fêtent après 1 an.'],
+    ['D\'où vient la tradition « quelque chose de vieux, de neuf, d\'emprunté et de bleu » ?', ['D\'Italie', 'Du Japon', 'D\'Angleterre', 'De Russie'], 2, 'Elle vient d\'une comptine anglaise de l\'époque victorienne.'],
+    ['Quelle reine a lancé la mode de la robe de mariée blanche en 1840 ?', ['Marie-Antoinette', 'Victoria', 'Elizabeth II', 'Catherine de Médicis'], 1, 'Avant elle, on se mariait souvent dans sa plus belle robe, de n\'importe quelle couleur.'],
+    ['Que lançait-on traditionnellement sur les mariés à la sortie de la cérémonie ?', ['Des plumes', 'Des bonbons', 'Des confettis', 'Du riz'], 3, 'Le riz symbolise la prospérité et la fertilité.'],
+    ['En France, quel mariage est le seul reconnu par la loi ?', ['Le mariage religieux', 'Le mariage civil à la mairie', 'Le PACS', 'La cérémonie laïque'], 1, 'Le mariage civil doit d\'ailleurs avoir lieu avant toute cérémonie religieuse.']
+  ]},
+  { id: 'chansons-amour', cat: 'maries', emoji: '🎶', title: 'Les chansons d\'amour', desc: 'Qui chante ces grands classiques ?', qs: [
+    ['Qui chante « La Vie en rose » ?', ['Dalida', 'Barbara', 'Édith Piaf', 'Juliette Gréco'], 2, 'Piaf l\'a écrite en 1945.'],
+    ['Quel duo chante « Je t\'aime… moi non plus » (1969) ?', ['Sonny & Cher', 'Gainsbourg & Birkin', 'Johnny & Sylvie', 'Dutronc & Hardy'], 1, 'La chanson a été censurée dans plusieurs pays !'],
+    ['Qui chante « Ne me quitte pas » ?', ['Jacques Brel', 'Charles Aznavour', 'Léo Ferré', 'Georges Brassens'], 0, 'Une chanson de 1959.'],
+    ['Qui a créé « Can\'t Help Falling in Love » ?', ['Frank Sinatra', 'Dean Martin', 'Ray Charles', 'Elvis Presley'], 3, 'Elvis la chante dans le film « Blue Hawaii » (1961).'],
+    ['Qui a rendu célèbre « I Will Always Love You » en 1992 ?', ['Céline Dion', 'Whitney Houston', 'Mariah Carey', 'Tina Turner'], 1, 'La chanson a été écrite par Dolly Parton.'],
+    ['Qui chante « My Heart Will Go On », la chanson de Titanic ?', ['Adele', 'Lara Fabian', 'Céline Dion', 'Shania Twain'], 2, 'Elle a remporté l\'Oscar de la meilleure chanson.'],
+    ['Qui chante « Perfect » (2017), très prisée pour les ouvertures de bal ?', ['Ed Sheeran', 'Bruno Mars', 'Sam Smith', 'Shawn Mendes'], 0, ''],
+    ['Qui chante « Les Mots bleus » ?', ['Alain Souchon', 'Michel Berger', 'Hervé Vilard', 'Christophe'], 3, 'Sortie en 1974.'],
+    ['Qui chante « Tous les garçons et les filles » ?', ['Sylvie Vartan', 'Françoise Hardy', 'France Gall', 'Sheila'], 1, 'Son tout premier succès, en 1962.'],
+    ['Quel groupe chante « All You Need Is Love » ?', ['Queen', 'Les Rolling Stones', 'Les Beatles', 'ABBA'], 2, 'Elle a été chantée en direct à la télévision mondiale en 1967.']
+  ]},
+  { id: 'couples-celebres', cat: 'maries', emoji: '💑', title: 'Les couples célèbres', desc: 'Histoire, littérature et cinéma', qs: [
+    ['Qui a écrit « Roméo et Juliette » ?', ['Molière', 'Shakespeare', 'Victor Hugo', 'Racine'], 1, ''],
+    ['Dans Titanic, comment s\'appelle le héros joué par Leonardo DiCaprio ?', ['Jim', 'John', 'Jack', 'James'], 2, 'Jack Dawson, qui tombe amoureux de Rose.'],
+    ['Quel couple royal britannique s\'est marié en 2011 ?', ['William et Kate', 'Harry et Meghan', 'Charles et Diana', 'Edward et Sophie'], 0, 'Le mariage a été suivi par des centaines de millions de téléspectateurs.'],
+    ['Le couple de scientifiques Pierre et Marie…', ['Pasteur', 'Lumière', 'Becquerel', 'Curie'], 3, 'Ils ont reçu le prix Nobel de physique en 1903.'],
+    ['De qui Amélie Poulain tombe-t-elle amoureuse ?', ['Lucien', 'Nino', 'Raphaël', 'Hipolito'], 1, 'Nino Quincampoix, joué par Mathieu Kassovitz.'],
+    ['Tristan et… ?', ['Iseut', 'Juliette', 'Guenièvre', 'Héloïse'], 0, 'Une légende du Moyen Âge.'],
+    ['Qui Napoléon Bonaparte épouse-t-il en 1796 ?', ['Marie-Louise', 'Désirée Clary', 'Joséphine de Beauharnais', 'Hortense'], 2, ''],
+    ['Dans « Grease », de qui Danny est-il amoureux ?', ['Rizzo', 'Frenchy', 'Marty', 'Sandy'], 3, ''],
+    ['Qui Johnny Hallyday a-t-il épousé en 1965 ?', ['Sheila', 'Sylvie Vartan', 'France Gall', 'Françoise Hardy'], 1, ''],
+    ['Abélard et… ?', ['Héloïse', 'Iseut', 'Bérénice', 'Laure'], 0, 'Un couple célèbre du XIIe siècle.']
+  ]},
+  { id: 'mariage-cinema', cat: 'maries', emoji: '🎬', title: 'Le mariage au cinéma', desc: 'Films cultes de mariage', qs: [
+    ['Dans quel film Hugh Grant enchaîne-t-il les cérémonies ?', ['Coup de foudre à Notting Hill', 'Quatre mariages et un enterrement', 'Love Actually', 'Le Journal de Bridget Jones'], 1, 'Sorti en 1994.'],
+    ['« Mamma Mia ! » reprend les chansons de quel groupe ?', ['ABBA', 'Les Bee Gees', 'Queen', 'Boney M'], 0, ''],
+    ['Qui joue l\'héroïne du « Mariage de mon meilleur ami » (1997) ?', ['Cameron Diaz', 'Meg Ryan', 'Julia Roberts', 'Sandra Bullock'], 2, 'Cameron Diaz y joue la future mariée.'],
+    ['Quel film de Toledano et Nakache se déroule pendant un mariage dans un château ?', ['Intouchables', 'Le Grand Bain', 'Qu\'est-ce qu\'on a fait au Bon Dieu ?', 'Le Sens de la fête'], 3, 'Avec Jean-Pierre Bacri en traiteur dépassé, en 2017.'],
+    ['Combien de filles ont les Verneuil dans « Qu\'est-ce qu\'on a fait au Bon Dieu ? » ?', ['2', '3', '4', '5'], 2, ''],
+    ['Qui Fiona épouse-t-elle à la fin de « Shrek » ?', ['Lord Farquaad', 'Shrek', 'Le Prince Charmant', 'L\'Âne'], 1, ''],
+    ['Dans « Mariage à la grecque », que tient la famille de l\'héroïne ?', ['Un restaurant', 'Une boulangerie', 'Un hôtel', 'Une pharmacie'], 0, 'Le restaurant « Dancing Zorba\'s ».'],
+    ['Dans « La Mélodie du bonheur », Maria épouse le capitaine…', ['von Braun', 'von Stauffenberg', 'von Karajan', 'von Trapp'], 3, ''],
+    ['Qui joue le père dans « Le Père de la mariée » (1991) ?', ['Robin Williams', 'Steve Martin', 'Tom Hanks', 'Billy Crystal'], 1, ''],
+    ['Dans « Les Noces funèbres » de Tim Burton, qui Victor épouse-t-il par erreur ?', ['Une sorcière', 'Une vampire', 'Une mariée défunte', 'Un fantôme de pirate'], 2, 'Elle s\'appelle Emily.']
+  ]},
+  { id: 'qui-des-deux', cat: 'maries', emoji: '👫', title: 'Qui des deux ?', desc: 'Les invités votent, les mariés répondent', who: true, qs: [
+    'Qui a fait le premier pas ?', 'Qui est toujours en retard ?', 'Qui cuisine le mieux ?', 'Qui dit « je t\'aime » le plus souvent ?',
+    'Qui est le plus dépensier ?', 'Qui ronfle le plus ?', 'Qui est de mauvaise humeur au réveil ?', 'Qui conduit le mieux ?',
+    'Qui pleure devant les films ?', 'Qui a fait la demande en mariage ?'
+  ]},
+
+  /* ---------------- ANNIVERSAIRE ---------------- */
+  { id: 'annees-80', cat: 'anniv', emoji: '📼', title: 'Les années 80', desc: 'Walkman, Rubik\'s Cube et tubes', qs: [
+    ['Qui chante « Thriller » (1982) ?', ['Prince', 'Michael Jackson', 'Lionel Richie', 'Stevie Wonder'], 1, 'C\'est l\'album le plus vendu de l\'histoire.'],
+    ['Quel jeu vidéo met en scène une boule jaune qui mange des pac-gommes ?', ['Tetris', 'Space Invaders', 'Pac-Man', 'Donkey Kong'], 2, 'Sorti en 1980.'],
+    ['Comment s\'appelle le célèbre casse-tête en forme de cube coloré ?', ['Le Rubik\'s Cube', 'Le Tangram', 'Le Mastermind', 'Le Simon'], 0, ''],
+    ['Quel mur tombe en novembre 1989 ?', ['Le mur d\'Hadrien', 'Le mur des Lamentations', 'La Grande Muraille', 'Le mur de Berlin'], 3, ''],
+    ['Qui chante « Ella, elle l\'a » (1987) ?', ['Jeanne Mas', 'France Gall', 'Mylène Farmer', 'Vanessa Paradis'], 1, 'Un hommage à Ella Fitzgerald.'],
+    ['Qui a réalisé « E.T. l\'extra-terrestre » (1982) ?', ['George Lucas', 'James Cameron', 'Steven Spielberg', 'Robert Zemeckis'], 2, ''],
+    ['Dans « Retour vers le futur », quelle voiture voyage dans le temps ?', ['Une DeLorean', 'Une Ferrari', 'Une Mustang', 'Une Porsche'], 0, ''],
+    ['À quoi sert un Walkman ?', ['À téléphoner', 'À jouer aux jeux vidéo', 'À regarder des films', 'À écouter des cassettes'], 3, ''],
+    ['Qui chante « Like a Virgin » (1984) ?', ['Cyndi Lauper', 'Madonna', 'Whitney Houston', 'Kim Wilde'], 1, ''],
+    ['En quelle année sort « Libertine » de Mylène Farmer ?', ['1980', '1986', '1992', '1996'], 1, '']
+  ]},
+  { id: 'annees-90', cat: 'anniv', emoji: '💿', title: 'Les années 90', desc: 'Tamagotchi, Friends et Coupe du monde', qs: [
+    ['Qui chante « Pour que tu m\'aimes encore » (1995) ?', ['Lara Fabian', 'Céline Dion', 'Isabelle Boulay', 'Patricia Kaas'], 1, 'Une chanson écrite par Jean-Jacques Goldman.'],
+    ['En quelle année la France gagne-t-elle sa première Coupe du monde de football ?', ['1994', '2002', '1998', '1990'], 2, '3-0 contre le Brésil au Stade de France.'],
+    ['Quelle console Sony sort en 1994 ?', ['La PlayStation', 'La Game Boy', 'La Mega Drive', 'La Nintendo 64'], 0, ''],
+    ['Comment s\'appelle le petit animal virtuel à nourrir dans un porte-clés ?', ['Le Furby', 'Le Pokémon', 'Les Pogs', 'Le Tamagotchi'], 3, ''],
+    ['Dans la série « Friends », comment s\'appelle le café ?', ['Central Perk', 'Monk\'s Café', 'MacLaren\'s', 'Luke\'s'], 0, ''],
+    ['Quel groupe chante « Wannabe » (1996) ?', ['All Saints', 'Destiny\'s Child', 'Les Spice Girls', 'TLC'], 2, ''],
+    ['Quel film de 1997 raconte un naufrage célèbre ?', ['Pearl Harbor', 'Titanic', 'Le Poseidon', 'Abyss'], 1, ''],
+    ['Qui chante « Macarena » ?', ['Les Gipsy Kings', 'Ricky Martin', 'Enrique Iglesias', 'Los del Río'], 3, ''],
+    ['En quelle année le tunnel sous la Manche est-il inauguré ?', ['1990', '1994', '1998', '1986'], 1, ''],
+    ['Quel jeune sorcier à lunettes apparaît en librairie en 1997 ?', ['Harry Potter', 'Merlin', 'Gandalf', 'Ron Weasley'], 0, '']
+  ]},
+  { id: 'annees-2000', cat: 'anniv', emoji: '📱', title: 'Les années 2000', desc: 'Euro, iPhone et Star Academy', qs: [
+    ['Quand les pièces et billets en euros arrivent-ils en France ?', ['Le 1er janvier 1999', 'Le 1er janvier 2002', 'Le 1er janvier 2000', 'Le 1er janvier 2004'], 1, ''],
+    ['Quel téléphone Apple sort en 2007 ?', ['L\'iPod', 'L\'iPad', 'L\'iPhone', 'Le BlackBerry'], 2, ''],
+    ['Quel réseau social Mark Zuckerberg lance-t-il en 2004 ?', ['Facebook', 'Twitter', 'MySpace', 'Instagram'], 0, ''],
+    ['Sur quelle chaîne la « Star Academy » est-elle diffusée en 2001 ?', ['M6', 'France 2', 'Canal+', 'TF1'], 3, ''],
+    ['Qui chante « Crazy in Love » (2003) avec Jay-Z ?', ['Rihanna', 'Beyoncé', 'Alicia Keys', 'Shakira'], 1, ''],
+    ['Quel Pixar de 2003 suit un poisson-clown ?', ['Ratatouille', 'Cars', 'Le Monde de Nemo', 'Toy Story'], 2, ''],
+    ['Qui chante « Alors on danse » (2009) ?', ['Stromae', 'Christophe Maé', 'Calogero', 'M. Pokora'], 0, ''],
+    ['En quelle année a lieu le célèbre « coup de tête » de Zidane en finale ?', ['2002', '1998', '2010', '2006'], 3, ''],
+    ['Quelle saga adapte les romans de Tolkien (2001-2003) ?', ['Narnia', 'Le Seigneur des anneaux', 'Harry Potter', 'Eragon'], 1, ''],
+    ['Dans « Bienvenue chez les Ch\'tis », où Philippe est-il muté ?', ['À Lille', 'À Dunkerque', 'À Bergues', 'À Calais'], 2, '']
+  ]},
+  { id: 'dessins-animes', cat: 'anniv', emoji: '🧸', title: 'Dessins animés', desc: 'Les héros de notre enfance', qs: [
+    ['Comment s\'appelle le chien de Tintin ?', ['Idéfix', 'Milou', 'Pluto', 'Snoopy'], 1, ''],
+    ['Qui est le druide du village d\'Astérix ?', ['Panoramix', 'Abraracourcix', 'Assurancetourix', 'Agecanonix'], 0, ''],
+    ['Dans « Le Roi lion », comment s\'appelle le père de Simba ?', ['Scar', 'Rafiki', 'Zazu', 'Mufasa'], 3, ''],
+    ['Combien de nains accompagnent Blanche-Neige ?', ['5', '6', '7', '9'], 2, ''],
+    ['Quel Pokémon jaune accompagne Sacha ?', ['Salamèche', 'Pikachu', 'Carapuce', 'Bulbizarre'], 1, ''],
+    ['Que raconte « Il était une fois… la Vie » ?', ['Le corps humain', 'L\'espace', 'L\'histoire', 'Les animaux'], 0, ''],
+    ['Dans « La Reine des neiges », comment s\'appelle le bonhomme de neige ?', ['Sven', 'Kristoff', 'Olaf', 'Hans'], 2, ''],
+    ['De quelle couleur sont les Schtroumpfs ?', ['Verts', 'Rouges', 'Jaunes', 'Bleus'], 3, ''],
+    ['Qui pilote Goldorak ?', ['Alcor', 'Actarus', 'Vénusia', 'Procyon'], 1, ''],
+    ['Dans « Toy Story », comment s\'appelle le cow-boy ?', ['Woody', 'Buzz', 'Jessie', 'Bayle'], 0, '']
+  ]},
+  { id: 'special-anniv', cat: 'anniv', emoji: '🎂', title: 'Spécial anniversaire', desc: 'Bougies, signes et curiosités', qs: [
+    ['De quel pays vient la chanson « Happy Birthday to You » ?', ['D\'Angleterre', 'Des États-Unis', 'Du Canada', 'D\'Australie'], 1, 'Elle a été composée par deux sœurs du Kentucky.'],
+    ['Quel est le signe astrologique de quelqu\'un né le 25 décembre ?', ['Sagittaire', 'Verseau', 'Capricorne', 'Bélier'], 2, ''],
+    ['Quel est le signe de quelqu\'un né le 14 juillet ?', ['Cancer', 'Lion', 'Gémeaux', 'Vierge'], 0, ''],
+    ['À quel âge devient-on majeur en France ?', ['16 ans', '20 ans', '21 ans', '18 ans'], 3, 'Depuis 1974 (avant, c\'était 21 ans).'],
+    ['Combien de jours compte une année bissextile ?', ['365', '366', '364', '367'], 1, ''],
+    ['Tous les combien une personne née un 29 février fête-t-elle son vrai anniversaire ?', ['Tous les 2 ans', 'Tous les 3 ans', 'Tous les 4 ans', 'Tous les 10 ans'], 2, ''],
+    ['Combien faut-il de personnes pour avoir plus d\'une chance sur deux que deux d\'entre elles soient nées le même jour ?', ['23', '50', '100', '183'], 0, 'C\'est le célèbre « paradoxe des anniversaires ».'],
+    ['Combien d\'années de mariage célèbrent les noces de diamant ?', ['50 ans', '70 ans', '75 ans', '60 ans'], 3, ''],
+    ['Combien de bougies faut-il pour fêter un demi-siècle ?', ['25', '50', '100', '40'], 1, ''],
+    ['Quelle fleur offre-t-on traditionnellement le 1er mai en France ?', ['La rose', 'La tulipe', 'Le muguet', 'La violette'], 2, 'Elle porterait bonheur.']
+  ]},
+
+  /* ---------------- CULTURE GÉNÉRALE ---------------- */
+  { id: 'geographie', cat: 'culture', emoji: '🌍', title: 'Géographie', desc: 'Capitales, fleuves et pays', qs: [
+    ['Quelle est la capitale de l\'Australie ?', ['Sydney', 'Melbourne', 'Canberra', 'Perth'], 2, ''],
+    ['Quel est le plus long fleuve de France ?', ['La Loire', 'La Seine', 'Le Rhône', 'La Garonne'], 0, 'Environ 1 000 km.'],
+    ['Quel est le plus haut sommet des Alpes ?', ['Le Cervin', 'Le Mont Rose', 'Le Grand Paradis', 'Le Mont Blanc'], 3, ''],
+    ['Quel est le plus grand océan du monde ?', ['L\'Atlantique', 'Le Pacifique', 'L\'Indien', 'L\'Arctique'], 1, ''],
+    ['Quelle est la capitale du Canada ?', ['Toronto', 'Montréal', 'Ottawa', 'Québec'], 2, ''],
+    ['Dans quel pays se trouve Marrakech ?', ['Au Maroc', 'En Tunisie', 'En Algérie', 'En Égypte'], 0, ''],
+    ['Quel pays a la forme d\'une botte ?', ['L\'Espagne', 'La Grèce', 'Le Portugal', 'L\'Italie'], 3, ''],
+    ['Quel est le plus grand désert chaud du monde ?', ['Le Gobi', 'Le Sahara', 'Le Kalahari', 'L\'Atacama'], 1, ''],
+    ['Combien de régions compte la France métropolitaine depuis 2016 ?', ['12', '18', '13', '22'], 2, ''],
+    ['Quelle ville est surnommée « la Ville lumière » ?', ['Paris', 'Lyon', 'Rome', 'Las Vegas'], 0, '']
+  ]},
+  { id: 'histoire-france', cat: 'culture', emoji: '🏰', title: 'Histoire de France', desc: 'Rois, révolutions et grandes dates', qs: [
+    ['En quelle année a eu lieu la prise de la Bastille ?', ['1792', '1789', '1815', '1830'], 1, 'Le 14 juillet 1789.'],
+    ['Qui fut le premier président de la Ve République ?', ['Georges Pompidou', 'René Coty', 'François Mitterrand', 'Charles de Gaulle'], 3, ''],
+    ['Quand a eu lieu le Débarquement en Normandie ?', ['Le 6 juin 1944', 'Le 8 mai 1945', 'Le 11 novembre 1918', 'Le 18 juin 1940'], 0, ''],
+    ['Quel roi était surnommé le Roi-Soleil ?', ['Louis XIII', 'Louis XV', 'Louis XIV', 'Henri IV'], 2, ''],
+    ['Dans quelle ville Jeanne d\'Arc a-t-elle été brûlée ?', ['Orléans', 'Rouen', 'Reims', 'Paris'], 1, 'Le 30 mai 1431.'],
+    ['Avant de conquérir l\'Angleterre en 1066, Guillaume le Conquérant était duc de…', ['Bretagne', 'Bourgogne', 'Aquitaine', 'Normandie'], 3, ''],
+    ['En quelle année Charlemagne est-il couronné empereur ?', ['800', '1000', '732', '987'], 0, ''],
+    ['En quelle année la peine de mort a-t-elle été abolie en France ?', ['1968', '1974', '1981', '1990'], 2, 'Grâce à la loi portée par Robert Badinter.'],
+    ['En quelle année les Françaises ont-elles obtenu le droit de vote ?', ['1918', '1944', '1936', '1958'], 1, 'Elles votent pour la première fois en 1945.'],
+    ['Sur quelle île Napoléon est-il mort ?', ['L\'île d\'Elbe', 'La Corse', 'Sainte-Hélène', 'L\'île de Ré'], 2, 'En 1821.']
+  ]},
+  { id: 'sciences', cat: 'culture', emoji: '🔬', title: 'Sciences & nature', desc: 'Corps humain, animaux, planètes', qs: [
+    ['Quel est le symbole chimique de l\'or ?', ['Or', 'Au', 'Ag', 'Go'], 1, 'Du latin « aurum ».'],
+    ['Quelle planète est la plus proche du Soleil ?', ['Vénus', 'Mars', 'Mercure', 'La Terre'], 2, ''],
+    ['Combien d\'os compte le squelette d\'un adulte ?', ['206', '186', '226', '256'], 0, ''],
+    ['Quel est le plus grand animal du monde ?', ['L\'éléphant d\'Afrique', 'Le requin-baleine', 'La girafe', 'La baleine bleue'], 3, 'Elle peut dépasser 30 mètres.'],
+    ['À quelle température l\'eau bout-elle au niveau de la mer ?', ['90 °C', '100 °C', '110 °C', '120 °C'], 1, ''],
+    ['Quel gaz les plantes absorbent-elles pour vivre ?', ['L\'oxygène', 'L\'azote', 'Le dioxyde de carbone', 'L\'hélium'], 2, ''],
+    ['Combien de pattes a une araignée ?', ['8', '6', '10', '12'], 0, ''],
+    ['Qui a formulé la théorie de la relativité ?', ['Isaac Newton', 'Marie Curie', 'Galilée', 'Albert Einstein'], 3, ''],
+    ['Combien de cœurs possède une pieuvre ?', ['1', '3', '2', '8'], 1, ''],
+    ['Quel est le plus grand organe du corps humain ?', ['Le foie', 'Le cerveau', 'La peau', 'L\'intestin'], 2, '']
+  ]},
+  { id: 'cinema-series', cat: 'culture', emoji: '🍿', title: 'Cinéma & séries', desc: 'Films cultes et séries du moment', qs: [
+    ['Qui a réalisé « Titanic » et « Avatar » ?', ['Steven Spielberg', 'James Cameron', 'Ridley Scott', 'Christopher Nolan'], 1, ''],
+    ['Qui joue aux côtés de François Cluzet dans « Intouchables » ?', ['Omar Sy', 'Jamel Debbouze', 'Kad Merad', 'Dany Boon'], 0, ''],
+    ['Dans « Le Seigneur des anneaux », qui porte l\'anneau jusqu\'au Mordor ?', ['Sam', 'Aragorn', 'Gandalf', 'Frodon'], 3, ''],
+    ['Quelle série se déroule à Westeros ?', ['Vikings', 'The Witcher', 'Game of Thrones', 'The Crown'], 2, ''],
+    ['« Que la Force soit avec toi » : de quelle saga vient cette réplique ?', ['Star Trek', 'Star Wars', 'Matrix', 'Dune'], 1, ''],
+    ['Quel est le matricule de James Bond ?', ['007', '001', '009', '700'], 0, ''],
+    ['Qui joue Jacquouille dans « Les Visiteurs » ?', ['Jean Reno', 'Gérard Jugnot', 'Thierry Lhermitte', 'Christian Clavier'], 3, ''],
+    ['Quelle série espagnole met en scène des braqueurs aux masques de Dalí ?', ['Élite', 'La casa de papel', 'Narcos', 'Vis a vis'], 1, ''],
+    ['Comment s\'appelle la Petite Sirène de Disney ?', ['Ariel', 'Aurore', 'Belle', 'Jasmine'], 0, ''],
+    ['Quelle récompense est remise au Festival de Cannes ?', ['Le César', 'L\'Oscar', 'La Palme d\'or', 'Le Lion d\'or'], 2, '']
+  ]},
+  { id: 'normandie', cat: 'culture', emoji: '🍏', title: 'Spécial Normandie', desc: 'Fromages, calvados et grande histoire', qs: [
+    ['Lequel de ces fromages est normand ?', ['Le comté', 'Le camembert', 'Le reblochon', 'Le roquefort'], 1, 'Le livarot et le pont-l\'évêque aussi !'],
+    ['Quelle célèbre tapisserie raconte la conquête de l\'Angleterre ?', ['La tapisserie de Bayeux', 'La Dame à la licorne', 'La tenture de l\'Apocalypse', 'La tapisserie de Caen'], 0, 'Elle mesure environ 70 mètres de long.'],
+    ['Dans quel département se trouve le Mont-Saint-Michel ?', ['Le Calvados', 'L\'Ille-et-Vilaine', 'L\'Orne', 'La Manche'], 3, ''],
+    ['Quel peintre impressionniste vivait à Giverny ?', ['Auguste Renoir', 'Edgar Degas', 'Claude Monet', 'Paul Cézanne'], 2, 'Il y a peint ses célèbres Nymphéas.'],
+    ['Comment s\'appelle l\'eau-de-vie de cidre normande ?', ['Le calvados', 'Le cognac', 'L\'armagnac', 'Le kirsch'], 0, ''],
+    ['Qu\'est-ce que le « trou normand » ?', ['Un petit verre de calvados entre deux plats', 'Une falaise d\'Étretat', 'Une crêpe au cidre', 'Un fromage percé'], 0, ''],
+    ['Quelle ville normande accueille le Festival du cinéma américain ?', ['Cabourg', 'Deauville', 'Honfleur', 'Trouville'], 1, 'Depuis 1975.'],
+    ['Quelle est la préfecture du Calvados ?', ['Lisieux', 'Bayeux', 'Honfleur', 'Caen'], 3, ''],
+    ['Quelle sainte est vénérée à Lisieux ?', ['Sainte Jeanne d\'Arc', 'Sainte Bernadette', 'Sainte Thérèse', 'Sainte Geneviève'], 2, ''],
+    ['Sur quelle plage du Débarquement les Canadiens ont-ils débarqué ?', ['Omaha Beach', 'Juno Beach', 'Utah Beach', 'Gold Beach'], 1, '']
+  ]}
+];
+const QUIZ_CATS = [['maries', '💍 Mariés'], ['anniv', '🎂 Anniversaire'], ['culture', '🧠 Culture générale']];
+
 const OLD_THEMES = { champagne: ['guinguette', 'champagne'], bougie: ['guinguette', 'bougie'], fiesta: ['guinguette', 'couchant'], nuit: ['prestige', 'marine'] };
 
 /* =====================================================================
@@ -651,7 +866,7 @@ function startSync(colls, onChange, ms = CONFIG.pollMs) {
 const DEFAULTS = {
   names: '', subtitle: 'Bienvenue à notre mariage', date: '', countdownTo: '', countdownLabel: 'Ouverture du bal',
   mode: 'auto', moderation: false, slideSec: 8, showQr: true, showStats: true, reactions: true, quizAuto: false,
-  design: '', palette: '', theme: '', accent: '', pinned: '', pinnedAt: 0, announce: '', announceAt: 0, announceSec: 20,
+  design: '', palette: '', theme: '', accent: '', pinned: '', pinnedAt: 0, announce: '', announceAt: 0, announceSec: 20, quizId: '', quizQ: 0, quizPhase: 'q', quizAt: 0, quizSec: 20, quizPick: '',
   challenges: "Un selfie avec les mariés\nLa plus belle grimace de la table\nUn toast à l'amour 🥂\nLe pas de danse le plus fou\nVotre table au complet"
 };
 const S = () => Object.assign({}, DEFAULTS, cache.settings.main || {});
@@ -700,6 +915,60 @@ function viewHome() {
   const upd = () => { const e = ($('#ev').value || 'demo').toLowerCase().replace(/[^a-z0-9_-]/g, ''); ['ecran', 'console', 'invite'].forEach(v => $('#l-' + v).href = location.pathname + '?v=' + v + '&e=' + e + (FORCE_DEMO ? '&demo=1' : '')); };
   $('#ev').addEventListener('input', upd); upd();
 }
+
+
+/* ----- quiz : question courante ----- */
+function quizCur() {
+  const s = S(), q = QUIZZES.find(x => x.id === s.quizId); if (!q) return null;
+  const i = Math.max(0, Math.min(q.qs.length - 1, Number(s.quizQ) || 0));
+  return { quiz: q, i, item: q.qs[i] };
+}
+function whoNames() { const p = (S().names || '').split(/\s*(?:&|\+|\bet\b)\s*/i).map(x => x.trim()).filter(Boolean); return p.length >= 2 ? [p[0], p[1]] : ['Elle', 'Lui']; }
+
+/* ----- sauvegarde automatique des photos sur l'ordinateur (Chrome / Edge) ----- */
+function idb() { return new Promise((res, rej) => { const r = indexedDB.open('ecran-soiree', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+async function idbGet(k) { try { const db = await idb(); return await new Promise(res => { const t = db.transaction('kv').objectStore('kv').get(k); t.onsuccess = () => res(t.result); t.onerror = () => res(null); }); } catch (e) { return null; } }
+async function idbSet(k, v) { try { const db = await idb(); await new Promise(res => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = res; }); } catch (e) {} }
+const Saver = {
+  dir: null, root: null, busy: false, again: false, onUpdate: () => {},
+  saved: new Set((() => { try { return JSON.parse(localStorage.getItem('ecran:saved:' + EVENT) || '[]'); } catch (e) { return []; } })()),
+  supported: () => 'showDirectoryPicker' in window,
+  async open(root) { this.root = root; this.dir = await root.getDirectoryHandle('souvenirs-' + EVENT, { create: true }); },
+  async pick() {
+    const root = await window.showDirectoryPicker({ id: 'ecran-soiree', mode: 'readwrite', startIn: 'pictures' });
+    await this.open(root); await idbSet('dir', root); this.run(); return root.name;
+  },
+  async stored() { return await idbGet('dir'); },
+  async restore() { // à appeler pendant un clic (autorisation)
+    const root = await idbGet('dir'); if (!root) return false;
+    let perm = await root.queryPermission({ mode: 'readwrite' });
+    if (perm !== 'granted') perm = await root.requestPermission({ mode: 'readwrite' });
+    if (perm !== 'granted') return false;
+    await this.open(root); this.run(); return true;
+  },
+  fileName(p, n) {
+    const d = new Date(p.ts || Date.now()), z = x => String(x).padStart(2, '0');
+    const who = (p.author || 'invite').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w-]+/g, '-').slice(0, 24) || 'invite';
+    return `${d.getFullYear()}${z(d.getMonth() + 1)}${z(d.getDate())}_${z(d.getHours())}h${z(d.getMinutes())}_${who}_${p.id.slice(-5)}.jpg`;
+  },
+  async write(name, blob) { const fh = await this.dir.getFileHandle(name, { create: true }); const w = await fh.createWritable(); await w.write(blob); await w.close(); },
+  async run() {
+    if (!this.dir) return; if (this.busy) { this.again = true; return; }
+    this.busy = true;
+    try {
+      for (const p of live('photos')) {
+        if (this.saved.has(p.id)) continue;
+        const src = await photoSrc(p.id); if (!src) continue;
+        await this.write(this.fileName(p), await (await fetch(src)).blob());
+        this.saved.add(p.id); lsSet('ecran:saved:' + EVENT, JSON.stringify([...this.saved])); this.onUpdate(true);
+      }
+      const mots = live('messages');
+      if (mots.length) await this.write('mots-doux.txt', new Blob([mots.map(m => `« ${m.text} »\n— ${m.author || 'Anonyme'}\n`).join('\n')], { type: 'text/plain' }));
+    } catch (e) { showError('Sauvegarde sur l\'ordinateur : ' + e.message); }
+    this.busy = false; this.onUpdate(false);
+    if (this.again) { this.again = false; this.run(); }
+  }
+};
 
 /* =====================================================================
    6. GRAND ÉCRAN
@@ -808,9 +1077,12 @@ function viewScreen() {
     <div class="stats" id="stats"></div>
     <div class="qrbox" id="qrbox"><div class="q" id="qr"></div><div class="t">Scannez-moi&nbsp;✨<small>photos · mots doux · défis</small></div></div>
     <div class="toastbig" id="tb"></div>
+    <div class="savebadge" id="sb"></div>
     <div class="annonce" id="ann"><div><div class="k">✨ Annonce ✨</div><div class="t" id="annT"></div></div></div>
     <div class="start" id="start">
       <button class="btn primary" id="go">▶&nbsp; Lancer le grand écran</button>
+      <button class="btn" id="saveDir" style="font-size:2vh">💾 Sauvegarder aussi les photos sur cet ordinateur</button>
+      <div class="saveinfo" id="saveInfo"></div>
       <p>Placez d'abord cette fenêtre sur le vidéoprojecteur ou la TV, puis cliquez : l'écran passe en plein écran.<br>Raccourcis : <b>F</b> plein écran · <b>→</b> suivant · <b>Échap</b> quitter.</p>
     </div>
   </div>`;
@@ -821,7 +1093,16 @@ function viewScreen() {
   const scr = $('#scr'), stage = $('#stage');
   const fs = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {}); };
   const wake = () => navigator.wakeLock?.request('screen').catch(() => {});
-  $('#go').onclick = e => { e.stopPropagation(); fs(); wake(); $('#start').remove(); };
+  const sb = $('#sb');
+  Saver.onUpdate = flash => { sb.textContent = `💾 ${Saver.saved.size} photo${Saver.saved.size > 1 ? 's' : ''} sauvegardée${Saver.saved.size > 1 ? 's' : ''} · ${Saver.root ? Saver.root.name + '/souvenirs-' + EVENT : ''}`; if (flash) { sb.classList.add('flash'); clearTimeout(sb.t); sb.t = setTimeout(() => sb.classList.remove('flash'), 3500); } };
+  if (!Saver.supported()) { $('#saveDir').remove(); $('#saveInfo').textContent = 'Sauvegarde automatique sur l\'ordinateur : ouvrez cette page avec Chrome ou Edge.'; }
+  else Saver.stored().then(r => { if (r) $('#saveInfo').innerHTML = `Dossier mémorisé : <b>${esc(r.name)}/souvenirs-${esc(EVENT)}</b> — la sauvegarde reprendra au lancement.`; });
+  $('#saveDir') && ($('#saveDir').onclick = async e => {
+    e.stopPropagation();
+    try { const n = await Saver.pick(); $('#saveInfo').innerHTML = `✓ Les photos seront enregistrées dans <b>${esc(n)}/souvenirs-${esc(EVENT)}</b> au fil de la soirée.`; $('#saveDir').textContent = '📁 Changer de dossier'; }
+    catch (err) { if (err.name !== 'AbortError') showError(err.message); }
+  });
+  $('#go').onclick = async e => { e.stopPropagation(); fs(); wake(); if (Saver.supported() && !Saver.dir) { try { await Saver.restore(); } catch (err) {} } $('#start').remove(); };
   document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && wake());
   let mv; scr.addEventListener('mousemove', () => { scr.classList.add('cur'); clearTimeout(mv); mv = setTimeout(() => scr.classList.remove('cur'), 2200); });
   document.addEventListener('keydown', e => { if (e.key === 'f' || e.key === 'F') fs(); if (e.key === 'ArrowRight') advance(); });
@@ -843,7 +1124,7 @@ function viewScreen() {
       seenPin = s.pinnedAt; const [t, id] = s.pinned.split(':'), d = cache[t === 'photo' ? 'photos' : 'messages'][id];
       if (d && d.status === 'ok') { shown.add(t + id); return t === 'photo' ? { k: 'vedette', d } : { k: 'mot', d }; }
     }
-    if (['accueil', 'quiz', 'noir', 'mosaique', 'defi'].includes(mode)) return { k: mode };
+    if (['accueil', 'quiz', 'quizq', 'noir', 'mosaique', 'defi'].includes(mode)) return { k: mode };
     if (freshRun < 4 && mode !== 'mur') {
       if (mode !== 'mots') { const f = photos().find(p => !shown.has('photo' + p.id)); if (f) { shown.add('photo' + f.id); freshRun++; return { k: 'vedette', d: f, fresh: true }; } }
       if (mode !== 'vedette') { const f = msgs().find(m => !shown.has('message' + m.id)); if (f) { shown.add('message' + f.id); freshRun++; return { k: 'mot', d: f, fresh: true }; } }
@@ -969,6 +1250,26 @@ function viewScreen() {
       : '<p style="text-align:center;color:var(--muted);font-size:2vw">Les équipes arrivent…</p>');
     return el;
   }
+  function sceneQuizQ() {
+    const c = quizCur(); if (!c) return null;
+    const s = S(), { quiz, i, item } = c, who = !!quiz.who;
+    const choices = who ? whoNames() : item[1], correct = who ? (s.quizPick === '' ? -1 : Number(s.quizPick)) : item[2], reveal = s.quizPhase === 'a';
+    const el = document.createElement('div');
+    el.innerHTML = `<div class="qz"><div class="qz-top"><span>${quiz.emoji} ${esc(quiz.title)}</span><span>Question ${i + 1} / ${quiz.qs.length}</span></div>
+      <div class="qz-q">${esc(who ? item : item[0])}</div>
+      <div class="qz-ch ${choices.length === 2 ? 'two' : ''}">${choices.map((ch, k) => `<div class="qz-c ${reveal && correct >= 0 ? (k === correct ? 'ok' : 'no') : ''}"><b>${who ? (k ? '💙' : '💗') : 'ABCD'[k]}</b><span>${esc(ch)}</span></div>`).join('')}</div>
+      <div class="qz-foot" id="qzf">${reveal ? (!who && item[3] ? '💡 ' + esc(item[3]) : '') : ''}</div></div>`;
+    return el;
+  }
+  function qzTick() {
+    const f = document.getElementById('qzf'); if (!f) return; const s = S();
+    if (s.quizPhase === 'a') return;
+    const sec = Number(s.quizSec) || 0;
+    if (!sec) { f.innerHTML = 'Réfléchissez bien… 🤔'; return; }
+    const left = Math.ceil((s.quizAt + sec * 1000 - Date.now()) / 1000);
+    f.innerHTML = left > 0 ? `<span class="tm ${left <= 5 ? 'low' : ''}">⏱ ${left}</span>` : '⏰ Temps écoulé ! Stylos levés…';
+  }
+  setInterval(qzTick, 250);
   function sceneNoir() { const el = document.createElement('div'); el.className = 'noir'; el.textContent = S().names || ''; return el; }
 
   async function render(item) {
@@ -981,6 +1282,7 @@ function viewScreen() {
       case 'defi': c = sceneDefi(); break;
       case 'quiz': c = sceneQuiz(); break;
       case 'noir': c = sceneNoir(); break;
+      case 'quizq': c = sceneQuizQ(); break;
       default: c = sceneAccueil();
     }
     if (!c) { c = sceneAccueil(); item = { k: 'accueil' }; }
@@ -993,7 +1295,7 @@ function viewScreen() {
     clearTimeout(timer);
     const item = pickNext(); await render(item);
     const s = S(), base = Math.max(4, Number(s.slideSec) || 8) * 1000; lastMode = s.mode;
-    if (['accueil', 'quiz', 'noir', 'mosaique', 'defi'].includes(s.mode) && !item.d) return;
+    if (['accueil', 'quiz', 'quizq', 'noir', 'mosaique', 'defi'].includes(s.mode) && !item.d) return;
     const k = cur.k;
     const dur = k === 'mot' ? base + Math.min(7000, (cur.d?.text || '').length * 35) : k === 'mur' ? base * 1.7 : k === 'mosaique' ? base * 1.5 : k === 'accueil' ? base * 1.3 : k === 'defi' ? base * 1.2 : base;
     timer = setTimeout(advance, dur);
@@ -1001,7 +1303,7 @@ function viewScreen() {
   }
   function overlays() {
     const s = S(), k = cur ? cur.k : '';
-    $('#qrbox').classList.toggle('hide', !s.showQr || ['accueil', 'defi', 'noir', 'mosaique'].includes(k));
+    $('#qrbox').classList.toggle('hide', !s.showQr || ['accueil', 'defi', 'noir', 'mosaique', 'quizq'].includes(k));
     const st = $('#stats'); st.classList.toggle('hide', !s.showStats || k === 'noir');
     const nr = REACTS.reduce((a, [f]) => a + (cache.reactions[f] || 0), 0);
     st.innerHTML = `<span>📸 ${photos().length}</span><span>💌 ${msgs().length}</span>${s.reactions ? `<span>❤️ ${nr}</span>` : ''}`;
@@ -1049,10 +1351,12 @@ function viewScreen() {
     let redesign = false;
     if (changed.includes('settings')) { applyTheme(); checkAnnounce(); const dk = designKey() + paletteKey(); if (dk !== lastDesign) { lastDesign = dk; redesign = true; setTimeout(() => amb.refresh(), 60); } }
     if (changed.includes('reactions')) flyReactions();
+    if (changed.includes('photos') || changed.includes('messages')) Saver.run();
     announceArrivals();
     if (!started) { started = true; advance(); return; }
     const s = S(), pinNew = s.pinnedAt && seenPin !== null && s.pinnedAt !== seenPin;
     if (changed.includes('settings') && (s.mode !== lastMode || pinNew || redesign)) { advance(); return; }
+    if (cur && cur.k === 'quizq' && changed.includes('settings') && s.mode === 'quizq') { const b = $('.scene.in', stage), n = sceneQuizQ(); if (b && n) { b.innerHTML = ''; b.appendChild(n); qzTick(); } }
     if (cur && cur.k === 'quiz' && changed.includes('teams')) { const b = $('.scene.in', stage); if (b) { b.innerHTML = ''; b.appendChild(sceneQuiz()); } }
     if (cur && ['accueil', 'noir'].includes(cur.k) && changed.includes('settings')) { const b = $('.scene.in', stage); if (b) { b.innerHTML = ''; b.appendChild(cur.k === 'noir' ? sceneNoir() : sceneAccueil()); tick(); } }
     if (s.mode === 'auto' && cur && cur.k === 'accueil' && changed.includes('photos') && photos().some(p => !shown.has('photo' + p.id))) { advance(); return; }
@@ -1292,11 +1596,22 @@ function viewConsole() {
       ${pp.length || pm.length ? `<div class="card" style="margin-bottom:16px;border-color:var(--accent)"><h3 class="sec">⏳ En attente de validation (${pp.length + pm.length})</h3>
         <div class="row" style="margin-bottom:12px"><button class="btn sm primary" id="allok">✓ Tout valider</button></div>
         <div class="tiles">${pp.map(d => tile(d, true)).join('')}</div>${pm.length ? `<div class="mlist" style="margin-top:12px">${pm.map(d => mitem(d, true)).join('')}</div>` : ''}</div>` : ''}
+      <div class="card" style="margin-bottom:16px"><h3 class="sec">💾 Où sont les photos ?</h3>
+        <p class="sub" style="margin:0 0 8px">En ligne, dans votre base Firebase gratuite (1 Go au total ≈ 2 000 photos). Cet événement : <b>${op.length} photo${op.length > 1 ? 's' : ''} ≈ ${Math.max(1, Math.round(op.length * 0.45))} Mo</b>.</p>
+        <ol class="steps"><li><b>Pendant la soirée</b> : au lancement du grand écran, cliquez « 💾 Sauvegarder aussi les photos sur cet ordinateur » (Chrome ou Edge) : chaque photo est enregistrée automatiquement dans un dossier.</li>
+        <li><b>À la fin</b> : « ⬇ Tout télécharger (ZIP) » ci-dessous, à remettre aux mariés (photos + mots doux).</li>
+        <li><b>Ensuite</b> : « 🧹 Libérer l'espace en ligne » pour garder la base gratuite pour les prochains événements.</li></ol>
+        <div class="row" style="margin-top:10px"><button class="btn sm danger" id="purge" ${op.length ? '' : 'disabled'}>🧹 Libérer l'espace en ligne</button></div></div>
       <div class="card" style="margin-bottom:16px"><div class="row" style="justify-content:space-between"><h3 class="sec" style="margin:0">📸 Photos (${op.length})</h3><button class="btn sm" id="zip" ${op.length ? '' : 'disabled'}>⬇ Tout télécharger (ZIP)</button></div>
         <p class="sub" style="margin-top:6px">« À l'écran » affiche la photo tout de suite. ✕ la retire définitivement.</p>
         ${op.length ? `<div class="tiles">${op.map(d => tile(d, false)).join('')}</div>` : '<div class="empty">Aucune photo pour le moment.</div>'}</div>
       <div class="card"><h3 class="sec">💌 Mots doux (${om.length})</h3>${om.length ? `<div class="mlist">${om.map(d => mitem(d, false)).join('')}</div>` : '<div class="empty">Aucun mot pour le moment.</div>'}</div>`;
     fillThumbs();
+    if ($('#purge')) $('#purge').onclick = () => {
+      if (!confirm('Avez-vous bien sauvegardé les photos (dossier sur l\'ordinateur ou ZIP) ?\n\nToutes les photos de cet événement seront effacées de la base en ligne. Les mots doux sont conservés.')) return;
+      act(async () => { const list = Object.values(cache.photos).filter(p => p.status !== 'del'); let k = 0;
+        for (const p of list) { await store.write('photos', p.id, { status: 'del' }, true); await store.remove('photoData', p.id).catch(() => {}); photoCache.delete(p.id); toast(`Nettoyage ${++k} / ${list.length}…`, 1200); } }).then(() => toast('Espace libéré ✓'));
+    };
     if ($('#allok')) $('#allok').onclick = () => act(async () => { for (const d of pp) await store.write('photos', d.id, { status: 'ok' }, true); for (const d of pm) await store.write('messages', d.id, { status: 'ok' }, true); });
     $$('[data-a]').forEach(b => b.onclick = async () => {
       const id = b.dataset.id;
@@ -1359,13 +1674,47 @@ function viewConsole() {
     $('#dshow').onclick = () => act(() => saveSettings({ mode: 'defi' }));
   }
   function tabQuiz() {
+    const s = S(), cat = lsGet('ecran:qcat', 'maries'), c = quizCur(), live = s.mode === 'quizq';
     const t = Object.values(cache.teams).filter(x => x.status !== 'del').sort((a, b) => (b.score || 0) - (a.score || 0));
-    $('#body').innerHTML = `<div class="card">
+    let anim = '';
+    if (c) {
+      const { quiz, i, item } = c, who = !!quiz.who, choices = who ? whoNames() : item[1];
+      anim = `<div class="card" style="margin-bottom:16px;border-color:var(--accent)"><h3 class="sec">🎤 ${quiz.emoji} ${esc(quiz.title)} — question ${i + 1} / ${quiz.qs.length}</h3>
+        <p style="font-family:var(--fd);font-size:23px;margin:4px 0 12px;line-height:1.2">${esc(who ? item : item[0])}</p>
+        <div class="qans">${choices.map((ch, k) => `<div class="${!who && k === item[2] ? 'good' : ''}">${who ? (k ? '💙' : '💗') : 'ABCD'[k] + '.'} ${esc(ch)}${!who && k === item[2] ? ' ✓' : ''}</div>`).join('')}</div>
+        ${!who && item[3] ? `<p class="sub" style="margin:10px 0 0">💡 ${esc(item[3])}</p>` : ''}${who ? '<p class="sub" style="margin:10px 0 0">Les invités votent à main levée, les mariés montrent leur réponse : cliquez sur la bonne.</p>' : ''}
+        <div class="row" style="margin-top:14px">
+          <button class="btn" id="qprev" ${i === 0 ? 'disabled' : ''}>◀</button>
+          <button class="btn primary" id="qshow">${live && s.quizPhase === 'q' ? '🔄 Relancer le chrono' : '📺 Afficher la question'}</button>
+          ${who ? choices.map((ch, k) => `<button class="btn" data-pick="${k}">✅ ${esc(ch)}</button>`).join('') : '<button class="btn" id="qrev">💡 Révéler la réponse</button>'}
+          <button class="btn" id="qnext" ${i >= quiz.qs.length - 1 ? 'disabled' : ''}>Suivante ▶</button>
+          <button class="btn" id="qrank">🏆 Classement</button></div>
+        <div class="row" style="margin-top:12px"><span class="sub" style="margin:0">Chrono :</span>${[0, 10, 20, 30, 45].map(x => `<button class="btn sm ${Number(s.quizSec) === x ? 'on' : ''}" data-qt="${x}">${x ? x + ' s' : 'aucun'}</button>`).join('')}
+          <span class="sub" style="margin:0 0 0 auto">${live ? (s.quizPhase === 'a' ? '🟢 Réponse à l\'écran' : '🟢 Question à l\'écran') : '⚪ Pas encore à l\'écran'}</span></div></div>`;
+    }
+    $('#body').innerHTML = `
+      <div class="card" style="margin-bottom:16px"><h3 class="sec">📚 Bibliothèque de quiz</h3><p class="sub">15 quiz prêts à jouer. La question s'affiche sur le grand écran avec un chrono, les tables répondent sur papier ou à main levée, puis vous révélez la réponse et donnez les points ci-dessous.</p>
+        <div class="row" style="margin-bottom:12px">${QUIZ_CATS.map(([k, l]) => `<button class="btn sm ${cat === k ? 'on' : ''}" data-qc="${k}">${l}</button>`).join('')}</div>
+        <div class="qlib">${QUIZZES.filter(q => q.cat === cat).map(q => `<button data-qz="${q.id}" class="${s.quizId === q.id ? 'on' : ''}"><span class="e">${q.emoji}</span><b>${esc(q.title)}</b><small>${esc(q.desc)} · ${q.qs.length} questions</small></button>`).join('')}</div></div>
+      ${anim}
+      <div class="card"><h3 class="sec">🏆 Équipes & points</h3>
       <div class="row" style="margin-bottom:14px;flex-wrap:nowrap"><input class="input" id="tn" placeholder="Nom de l'équipe (ex. Table des témoins)"><button class="btn primary" id="add">Ajouter</button></div>
       ${t.length ? t.map(x => `<div class="team"><b>${esc(x.name)}</b><div class="sc">${x.score || 0}</div>
         <div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-q="-1" data-id="${x.id}">−1</button><button class="btn sm primary" data-q="1" data-id="${x.id}">+1</button><button class="btn sm primary" data-q="2" data-id="${x.id}">+2</button><button class="btn sm primary" data-q="5" data-id="${x.id}">+5</button><button class="btn sm danger" data-qd="${x.id}">✕</button></div></div>`).join('')
         : '<div class="empty">Aucune équipe. Ajoutez les tables ou les équipes.</div>'}
       <div class="row" style="margin-top:16px"><button class="btn primary" id="showq">🏆 Afficher le classement</button><button class="btn" id="rz">Remettre à zéro</button></div></div>`;
+    $$('[data-qc]').forEach(b => b.onclick = () => { lsSet('ecran:qcat', b.dataset.qc); render(); });
+    $$('[data-qz]').forEach(b => b.onclick = () => act(() => saveSettings({ quizId: b.dataset.qz, quizQ: 0, quizPhase: 'q', quizPick: '' })).then(() => toast('Quiz choisi : cliquez « Afficher la question » 📺')));
+    if (c) {
+      const go = (q, extra = {}) => act(() => saveSettings(Object.assign({ quizQ: q, quizPhase: 'q', quizPick: '', quizAt: Date.now(), mode: 'quizq' }, extra)));
+      $('#qprev').onclick = () => go(c.i - 1);
+      $('#qnext').onclick = () => go(c.i + 1);
+      $('#qshow').onclick = () => go(c.i);
+      if ($('#qrev')) $('#qrev').onclick = () => act(() => saveSettings({ quizPhase: 'a', mode: 'quizq' }));
+      $$('[data-pick]').forEach(b => b.onclick = () => act(() => saveSettings({ quizPhase: 'a', quizPick: b.dataset.pick, mode: 'quizq' })));
+      $('#qrank').onclick = () => act(() => saveSettings({ mode: 'quiz' }));
+      $$('[data-qt]').forEach(b => b.onclick = () => act(() => saveSettings({ quizSec: Number(b.dataset.qt), quizAt: Date.now() })));
+    }
     const add = () => { const n = $('#tn').value.trim(); if (n) act(() => store.write('teams', uid(), { name: n.slice(0, 40), score: 0, status: 'ok' })); };
     $('#add').onclick = add; $('#tn').onkeydown = e => { if (e.key === 'Enter') add(); };
     $$('[data-q]').forEach(b => b.onclick = () => act(() => store.increment('teams', b.dataset.id, 'score', Number(b.dataset.q))));
