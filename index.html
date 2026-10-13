@@ -527,7 +527,7 @@ h3.sec{font-family:var(--fd);font-weight:600;font-size:23px;margin:0 0 12px}
 /* =====================================================================
    1. CONFIGURATION
    ===================================================================== */
-const APP_VERSION = 11;
+const APP_VERSION = 12;
 const CONFIG = {
   firebase: {
     projectId: 'ecran-soiree-udn',
@@ -665,6 +665,18 @@ const QUIZZES = [
   ]},
 
   /* ---------------- ANNIVERSAIRE ---------------- */
+  { id: 'annees-70', cat: 'anniv', emoji: '🕺', title: 'Les années 70', desc: 'Disco, Concorde et Claude François', qs: [
+    ['Quel groupe a sorti « Bohemian Rhapsody » en 1975 ?', ['The Beatles', 'Queen', 'Pink Floyd', 'Led Zeppelin'], 1, 'Un morceau de près de 6 minutes, sans vrai refrain !'],
+    ['Quel groupe suédois gagne l\'Eurovision 1974 avec « Waterloo » ?', ['Roxette', 'Europe', 'ABBA', 'Ace of Base'], 2, ''],
+    ['Quel chanteur français triomphe en 1978 avec « Alexandrie Alexandra » ?', ['Claude François', 'Michel Sardou', 'Joe Dassin', 'Mike Brant'], 0, 'Accompagné de ses célèbres Claudettes.'],
+    ['Quel film de 1977 lance la fièvre disco avec John Travolta ?', ['Grease', 'Flashdance', 'Footloose', 'La Fièvre du samedi soir'], 3, ''],
+    ['Quelle saga commence au cinéma en 1977 avec Luke Skywalker ?', ['Star Trek', 'La Guerre des étoiles', 'Alien', 'Mad Max'], 1, 'On dit aujourd\'hui « Star Wars ».'],
+    ['Quel avion supersonique franco-britannique entre en service commercial en 1976 ?', ['L\'Airbus A300', 'La Caravelle', 'Le Concorde', 'Le Mirage'], 2, 'Il reliait Paris à New York en environ 3 h 30.'],
+    ['Quel président français est élu en 1974 ?', ['Valéry Giscard d\'Estaing', 'Georges Pompidou', 'François Mitterrand', 'Jacques Chirac'], 0, ''],
+    ['Quelle chanteuse interprète « Gigi l\'amoroso » (1974) ?', ['Sheila', 'Dalida', 'Sylvie Vartan', 'Françoise Hardy'], 1, ''],
+    ['Quel jeu d\'arcade de 1978 met en scène des envahisseurs extraterrestres ?', ['Pac-Man', 'Tetris', 'Pong', 'Space Invaders'], 3, ''],
+    ['Quel tennisman suédois gagne Roland-Garros de 1978 à 1981 sans interruption ?', ['Stefan Edberg', 'Mats Wilander', 'Björn Borg', 'Yannick Noah'], 2, 'Il l\'a remporté 6 fois au total.']
+  ]},
   { id: 'annees-80', cat: 'anniv', emoji: '📼', title: 'Les années 80', desc: 'Walkman, Rubik\'s Cube et tubes', qs: [
     ['Qui chante « Thriller » (1982) ?', ['Prince', 'Michael Jackson', 'Lionel Richie', 'Stevie Wonder'], 1, 'C\'est l\'album le plus vendu de l\'histoire.'],
     ['Quel jeu vidéo met en scène une boule jaune qui mange des pac-gommes ?', ['Tetris', 'Space Invaders', 'Pac-Man', 'Donkey Kong'], 2, 'Sorti en 1980.'],
@@ -786,9 +798,132 @@ const QUIZZES = [
     ['Quelle est la préfecture du Calvados ?', ['Lisieux', 'Bayeux', 'Honfleur', 'Caen'], 3, ''],
     ['Quelle sainte est vénérée à Lisieux ?', ['Sainte Jeanne d\'Arc', 'Sainte Bernadette', 'Sainte Thérèse', 'Sainte Geneviève'], 2, ''],
     ['Sur quelle plage du Débarquement les Canadiens ont-ils débarqué ?', ['Omaha Beach', 'Juno Beach', 'Utah Beach', 'Gold Beach'], 1, '']
+  ]},
+  /* ---------------- FÊTES DE L'ANNÉE ---------------- */
+  { id: 'noel', cat: 'fetes', emoji: '🎄', title: 'Le quiz de Noël', desc: 'Sapin, rennes, bûche et films cultes', qs: [
+    ['Dans quelle région française trouve-t-on la plus ancienne mention d\'un sapin de Noël (1521) ?', ['Bretagne', 'Provence', 'Alsace', 'Normandie'], 2, 'Elle figure dans un registre de la ville de Sélestat.'],
+    ['Comment s\'appelle le renne au nez rouge du Père Noël ?', ['Comète', 'Rudolph', 'Tonnerre', 'Éclair'], 1, 'Son nez lumineux guide le traîneau dans le brouillard.'],
+    ['Combien de rennes tirent le traîneau du Père Noël, Rudolph compris ?', ['6', '8', '9', '12'], 2, 'Huit rennes… plus Rudolph en tête !'],
+    ['Dans quelle région sert-on les « 13 desserts » de Noël ?', ['Alsace', 'Provence', 'Bretagne', 'Auvergne'], 1, 'Ils rappelleraient le Christ et ses douze apôtres.'],
+    ['Quelle marque de boisson a popularisé le Père Noël rouge et blanc dans ses publicités des années 1930 ?', ['Pepsi', 'Orangina', 'Schweppes', 'Coca-Cola'], 3, 'Les dessins de Haddon Sundblom datent de 1931… mais le Père Noël en rouge existait déjà avant.'],
+    ['Que représente la bûche de Noël ?', ['Un tronc d\'arbre', 'Un traîneau', 'Une cheminée', 'Un bonnet'], 0, 'Elle rappelle la grosse bûche qu\'on faisait brûler dans l\'âtre pendant la veillée.'],
+    ['Quel saint, fêté le 6 décembre, apporte des friandises aux enfants dans l\'Est de la France ?', ['Saint Martin', 'Saint Michel', 'Saint Nicolas', 'Saint Christophe'], 2, 'Il est accompagné du Père Fouettard.'],
+    ['Dans quel film de 1990 le petit Kevin est-il oublié par sa famille à Noël ?', ['Maman, j\'ai raté l\'avion !', 'Le Grinch', 'Elfe', 'Le Pôle express'], 0, 'Kevin défend seul la maison contre deux cambrioleurs.'],
+    ['Qui a composé le ballet « Casse-Noisette » ?', ['Mozart', 'Tchaïkovski', 'Debussy', 'Ravel'], 1, 'Créé à Saint-Pétersbourg en 1892.'],
+    ['Quelle comédie française culte se déroule un soir de réveillon à SOS Détresse Amitié ?', ['Les Bronzés', 'Le Dîner de cons', 'La Grande Vadrouille', 'Le Père Noël est une ordure'], 3, 'Le film de la troupe du Splendid est sorti en 1982.']
+  ]},
+  { id: 'nouvel-an', cat: 'fetes', emoji: '🥂', title: 'Réveillon & Nouvel An', desc: 'Traditions de minuit autour du monde', qs: [
+    ['Quelle date correspond à la Saint-Sylvestre ?', ['Le 31 décembre', 'Le 1er janvier', 'Le 6 janvier', 'Le 24 décembre'], 0, 'Sylvestre Ier, pape, est mort un 31 décembre.'],
+    ['En Espagne, que mange-t-on aux douze coups de minuit ?', ['12 olives', '12 amandes', '12 grains de raisin', '12 cerises'], 2, 'Un grain par coup : de quoi porter chance chaque mois de l\'année.'],
+    ['Sous quelle plante s\'embrasse-t-on à minuit en France ?', ['Le houx', 'Le gui', 'Le lierre', 'Le laurier'], 1, '« Au gui l\'an neuf ! » disait-on autrefois.'],
+    ['Quel pays est l\'un des tout premiers au monde à fêter la nouvelle année ?', ['Japon', 'Australie', 'Nouvelle-Zélande', 'Kiribati'], 3, 'Les îles de la Ligne, à Kiribati, vivent à l\'heure UTC+14.'],
+    ['Dans quelle ville une boule lumineuse descend-elle à minuit sur Times Square ?', ['New York', 'Chicago', 'Los Angeles', 'Londres'], 0, 'Une tradition qui date de 1907.'],
+    ['Quelle chanson écossaise chante-t-on à minuit dans les pays anglophones ?', ['Danny Boy', 'Jingle Bells', 'Greensleeves', 'Auld Lang Syne'], 3, 'En français, on la connaît sous le titre « Ce n\'est qu\'un au revoir ».'],
+    ['Quel roi a fixé le début de l\'année au 1er janvier en France ?', ['François Ier', 'Charles IX', 'Henri IV', 'Louis XIV'], 1, 'Par l\'édit de Roussillon, en 1564.'],
+    ['Que trouve-t-on caché dans la galette des rois ?', ['Une pièce', 'Une bague', 'Une fève', 'Un dé'], 2, 'Celui qui la trouve devient le roi… et porte la couronne.'],
+    ['Seul le vin effervescent produit dans quelle région peut s\'appeler « champagne » ?', ['La Champagne', 'La Bourgogne', 'L\'Alsace', 'Le Bordelais'], 0, 'Les autres s\'appellent crémant, mousseux…'],
+    ['En Italie, quelle couleur de sous-vêtement porte-t-on le soir du Nouvel An pour avoir de la chance ?', ['Jaune', 'Rouge', 'Blanc', 'Vert'], 1, 'Le rouge porterait bonheur et amour pour l\'année.']
+  ]},
+  { id: 'halloween', cat: 'fetes', emoji: '🎃', title: 'Halloween', desc: 'Citrouilles, sorcières et monstres', qs: [
+    ['De quel pays Halloween est-il originaire ?', ['États-Unis', 'Irlande', 'Mexique', 'Canada'], 1, 'Les émigrés irlandais l\'ont emporté en Amérique au XIXe siècle.'],
+    ['De quelle fête celtique Halloween est-il issu ?', ['Beltaine', 'Imbolc', 'Samain', 'Lugnasad'], 2, 'Samain marquait la fin des récoltes et le début de l\'hiver.'],
+    ['Avant la citrouille, quel légume les Irlandais creusaient-ils pour faire des lanternes ?', ['Le navet', 'La pomme de terre', 'Le chou', 'La betterave'], 0, 'En Amérique, la citrouille, plus grosse, l\'a remplacé.'],
+    ['Comment s\'appelle la citrouille-lanterne d\'Halloween ?', ['Pumpkin King', 'Bloody Mary', 'Jack-o\'-lantern', 'Tom Lantern'], 2, 'D\'après la légende de Jack, condamné à errer avec sa lanterne.'],
+    ['Que disent les enfants en sonnant aux portes ?', ['Joyeux Halloween !', 'Un trésor ou la vie !', 'Bouh !', 'Des bonbons ou un sort !'], 3, 'En anglais : « Trick or treat ! »'],
+    ['Quel écrivain irlandais a créé Dracula en 1897 ?', ['Edgar Allan Poe', 'Bram Stoker', 'Oscar Wilde', 'Mary Shelley'], 1, 'Le personnage s\'inspire en partie du prince Vlad l\'Empaleur.'],
+    ['Qui a écrit « Frankenstein » ?', ['Mary Shelley', 'Jane Austen', 'Agatha Christie', 'Emily Brontë'], 0, 'Elle l\'a commencé à 18 ans, et le roman paraît en 1818.'],
+    ['Quel film de 1984 met en scène des chasseurs de fantômes à New York ?', ['Gremlins', 'SOS Fantômes', 'Beetlejuice', 'Poltergeist'], 1, 'En anglais : « Ghostbusters ».'],
+    ['Au Mexique, comment s\'appelle la fête des morts du début novembre ?', ['Cinco de Mayo', 'La Tomatina', 'Las Fallas', 'Día de los Muertos'], 3, 'On y décore des autels de crânes en sucre et de fleurs orange.'],
+    ['En France, quelle fête suit Halloween le 1er novembre ?', ['L\'Ascension', 'L\'Assomption', 'La Toussaint', 'Le 11-Novembre'], 2, 'Halloween vient de « All Hallows\' Eve », la veille de la Toussaint.']
+  ]},
+  { id: 'saint-valentin', cat: 'fetes', emoji: '💘', title: 'La Saint-Valentin', desc: 'Cupidon, roses et cadenas', qs: [
+    ['Quel jour fête-t-on la Saint-Valentin ?', ['Le 14 janvier', 'Le 14 février', 'Le 14 mars', 'Le 21 juin'], 1, ''],
+    ['Quel dieu romain de l\'amour décoche ses flèches sur les amoureux ?', ['Mars', 'Mercure', 'Apollon', 'Cupidon'], 3, 'Son équivalent grec s\'appelle Éros.'],
+    ['Quelle est la déesse grecque de l\'amour ?', ['Aphrodite', 'Athéna', 'Héra', 'Artémis'], 0, 'Chez les Romains, c\'est Vénus.'],
+    ['Quelle fleur offre-t-on traditionnellement à la Saint-Valentin ?', ['La tulipe', 'Le lys', 'La rose rouge', 'Le muguet'], 2, 'Le rouge symbolise la passion.'],
+    ['Sur quel pont parisien les amoureux accrochaient-ils des cadenas, retirés en 2015 ?', ['Le pont Neuf', 'Le pont des Arts', 'Le pont Alexandre-III', 'Le pont de l\'Alma'], 1, 'Le poids des cadenas faisait céder les grilles !'],
+    ['Dans quel quartier de Paris se trouve le « mur des je t\'aime » ?', ['Montmartre', 'Le Marais', 'Saint-Germain', 'La Défense'], 0, 'On y lit « je t\'aime » dans plus de 250 langues.'],
+    ['Au Japon, qui offre traditionnellement du chocolat le 14 février ?', ['Les hommes aux femmes', 'Les enfants aux parents', 'Personne', 'Les femmes aux hommes'], 3, 'Les hommes rendent la pareille un mois plus tard, le 14 mars.'],
+    ['Quelle pierre orne traditionnellement la bague de fiançailles ?', ['Le rubis', 'Le diamant', 'L\'émeraude', 'Le saphir'], 1, 'Une mode lancée en 1477 par l\'archiduc Maximilien d\'Autriche.'],
+    ['Dans quelle ville italienne se déroule « Roméo et Juliette » ?', ['Venise', 'Florence', 'Vérone', 'Rome'], 2, 'On y visite encore le balcon de Juliette.'],
+    ['Quel village de l\'Indre porte le nom du saint des amoureux ?', ['Saint-Valentin', 'Saint-Amour', 'Cœur-sur-Indre', 'Bonamour'], 0, 'Il se surnomme le « village des amoureux ».']
+  ]},
+  /* ---------------- MUSIQUE & TÉLÉ ---------------- */
+  { id: 'tubes-soiree', cat: 'soiree', emoji: '🪩', title: 'Les tubes de la piste', desc: 'Disco, années 80 et dance', qs: [
+    ['Quel groupe chante « Stayin\' Alive » (1977) ?', ['Bee Gees', 'Village People', 'Boney M.', 'ABBA'], 0, 'Le tube de « La Fièvre du samedi soir ».'],
+    ['Qui chante « I Will Survive » (1978) ?', ['Donna Summer', 'Diana Ross', 'Gloria Gaynor', 'Tina Turner'], 2, 'Un hymne disco devenu incontournable des fins de soirée.'],
+    ['Quel groupe a créé « Y.M.C.A. » ?', ['Kool & the Gang', 'Village People', 'Chic', 'Bee Gees'], 1, 'Tout le monde fait les lettres avec les bras !'],
+    ['Qui chante « Celebration » (1980) ?', ['Earth, Wind & Fire', 'The Jacksons', 'Chic', 'Kool & the Gang'], 3, 'Un classique des mariages depuis plus de 40 ans.'],
+    ['Quel groupe français chante « Nuit de folie » (1988) ?', ['Images', 'Début de Soirée', 'Les Forbans', 'Niagara'], 1, 'Le groupe porte bien son nom !'],
+    ['Quel groupe chante « Les Démons de minuit » (1986) ?', ['Images', 'Gold', 'Partenaire Particulier', 'Début de Soirée'], 0, 'Un tube qui fait toujours remplir la piste.'],
+    ['Quel duo français a sorti « One More Time » (2000) ?', ['Justice', 'Air', 'Daft Punk', 'Cassius'], 2, 'Les deux musiciens se cachaient derrière des casques de robots.'],
+    ['Qui chante « Get Lucky » (2013) avec Daft Punk ?', ['Bruno Mars', 'Pharrell Williams', 'The Weeknd', 'Kanye West'], 1, 'Avec Nile Rodgers à la guitare.'],
+    ['Quel DJ français a produit « Titanium » (2011) ?', ['Bob Sinclar', 'Martin Solveig', 'DJ Snake', 'David Guetta'], 3, 'Chanté par Sia.'],
+    ['Quel artiste sud-coréen a fait danser la planète avec « Gangnam Style » (2012) ?', ['PSY', 'BTS', 'Rain', 'Big Bang'], 0, 'Premier clip à dépasser le milliard de vues sur YouTube.']
+  ]},
+  { id: 'jeux-tv', cat: 'soiree', emoji: '📺', title: 'Les jeux télé cultes', desc: 'Animateurs et émissions mythiques', qs: [
+    ['Quel jeu propose « Le compte est bon » et « Le mot le plus long » ?', ['Questions pour un champion', 'Des chiffres et des lettres', 'Motus', 'Pyramide'], 1, 'Lancé en 1965, c\'est l\'un des plus anciens jeux de la télé.'],
+    ['Qui a présenté « Questions pour un champion » de 1988 à 2015 ?', ['Jean-Pierre Foucault', 'Nagui', 'Julien Lepers', 'Patrick Sabatier'], 2, 'Puis Samuel Étienne a pris le relais.'],
+    ['Dans quel jeu les candidats affrontent-ils le Père Fouras ?', ['Fort Boyard', 'Intervilles', 'La Carte aux trésors', 'Koh-Lanta'], 0, 'Le fort se trouve au large de l\'île d\'Aix.'],
+    ['Dans « Fort Boyard », quels animaux gardent le trésor ?', ['Des lions', 'Des crocodiles', 'Des serpents', 'Des tigres'], 3, ''],
+    ['Quel jeu de Jean-Pierre Foucault demande « C\'est votre dernier mot ? » ?', ['Le Juste Prix', 'Qui veut gagner des millions ?', 'Le Maillon faible', 'Une famille en or'], 1, ''],
+    ['Combien de jokers avaient les candidats dans la version d\'origine de « Qui veut gagner des millions ? » ?', ['2', '3', '4', '5'], 1, 'Le 50/50, l\'appel à un ami et l\'avis du public.'],
+    ['Quel animateur présente « Les 12 Coups de midi » ?', ['Jean-Luc Reichmann', 'Cyril Féraud', 'Vincent Lagaf\'', 'Christophe Dechavanne'], 0, ''],
+    ['Dans « Le Juste Prix », que doivent deviner les candidats ?', ['L\'âge d\'une star', 'Le prix d\'objets', 'Le poids d\'un animal', 'Une date'], 1, ''],
+    ['Quel jeu animé par Nagui demande de chanter la suite d\'une chanson ?', ['Taratata', 'Tout le monde veut prendre sa place', 'N\'oubliez pas les paroles', 'Slam'], 2, ''],
+    ['Dans quel jeu redoute-t-on de tomber sur la case « Banqueroute » ?', ['Une famille en or', 'Motus', 'Le Bigdil', 'La Roue de la fortune'], 3, 'Elle fait perdre toute la cagnotte du tour.']
+  ]},
+  /* ---------------- AJOUTS ANNIVERSAIRE & CULTURE ---------------- */
+  { id: 'gastronomie', cat: 'culture', emoji: '🧀', title: 'Gastronomie française', desc: 'Spécialités de nos régions', qs: [
+    ['De quelle région vient la choucroute ?', ['Lorraine', 'Alsace', 'Savoie', 'Bourgogne'], 1, ''],
+    ['Quelle ville a donné son nom à une moutarde célèbre ?', ['Lyon', 'Reims', 'Dijon', 'Nancy'], 2, ''],
+    ['Le cassoulet est une spécialité de quelle région ?', ['Occitanie', 'Bretagne', 'Normandie', 'Alsace'], 0, 'Castelnaudary, Toulouse et Carcassonne se disputent la meilleure recette !'],
+    ['Avec quelle farine fait-on les galettes bretonnes ?', ['Le froment', 'Le maïs', 'Le seigle', 'Le sarrasin'], 3, 'On l\'appelle aussi « blé noir ».'],
+    ['Quel dessert est fait de pommes caramélisées cuites à l\'envers ?', ['Le clafoutis', 'La tarte Tatin', 'Le far breton', 'La charlotte'], 1, 'Inventé, dit-on, par les sœurs Tatin en Sologne.'],
+    ['Quelle épice colore la bouillabaisse marseillaise ?', ['Le curcuma', 'Le paprika', 'Le safran', 'Le curry'], 2, ''],
+    ['Qu\'est-ce que le kouign-amann ?', ['Un gâteau breton au beurre', 'Un fromage savoyard', 'Une saucisse alsacienne', 'Un vin du Jura'], 0, 'Son nom veut dire « gâteau au beurre » en breton.'],
+    ['Quel plat savoyard consiste à racler du fromage fondu sur des pommes de terre ?', ['La fondue', 'La tartiflette', 'Le gratin dauphinois', 'La raclette'], 3, ''],
+    ['Quel fromage, produit en Seine-et-Marne, est surnommé le « roi des fromages » ?', ['Le camembert', 'Le brie de Meaux', 'Le comté', 'Le roquefort'], 1, ''],
+    ['Dans quelle ville est né le célèbre « bouchon », petit restaurant traditionnel ?', ['Lyon', 'Bordeaux', 'Marseille', 'Lille'], 0, 'On y mange quenelles, andouillette et saucisson brioché.']
+  ]},
+  { id: 'sport', cat: 'culture', emoji: '⚽', title: 'Le sport', desc: 'Foot, rugby, tennis et JO', qs: [
+    ['Combien de joueurs compte une équipe de football sur le terrain ?', ['9', '10', '11', '12'], 2, ''],
+    ['Combien de temps dure un match de football, hors prolongations ?', ['80 minutes', '90 minutes', '100 minutes', '120 minutes'], 1, 'Deux mi-temps de 45 minutes.'],
+    ['De quelle couleur est le maillot du leader du Tour de France ?', ['Vert', 'Blanc', 'À pois', 'Jaune'], 3, 'Jaune comme le papier du journal « L\'Auto », organisateur en 1903.'],
+    ['Quel tournoi du Grand Chelem se joue sur terre battue ?', ['Roland-Garros', 'Wimbledon', 'l\'US Open', 'l\'Open d\'Australie'], 0, ''],
+    ['Quelle ville a accueilli les Jeux olympiques d\'été 2024 ?', ['Londres', 'Tokyo', 'Paris', 'Los Angeles'], 2, 'Un siècle après les Jeux de Paris 1924.'],
+    ['Quel nageur français a remporté 4 médailles d\'or individuelles aux JO de Paris 2024 ?', ['Florent Manaudou', 'Léon Marchand', 'Yannick Agnel', 'Alain Bernard'], 1, ''],
+    ['Combien de points vaut un essai au rugby (sans la transformation) ?', ['3', '4', '5', '7'], 2, ''],
+    ['Quel sport pratique Teddy Riner ?', ['Le judo', 'La lutte', 'La boxe', 'Le karaté'], 0, ''],
+    ['Combien de trous compte un parcours de golf classique ?', ['9', '12', '16', '18'], 3, ''],
+    ['Quel footballeur français a remporté le Ballon d\'or 2022 ?', ['Kylian Mbappé', 'Karim Benzema', 'Antoine Griezmann', 'N\'Golo Kanté'], 1, 'Le premier Français depuis Zinédine Zidane en 1998.']
+  ]},
+  { id: 'expressions', cat: 'culture', emoji: '💬', title: 'Expressions françaises', desc: 'Que veulent-elles vraiment dire ?', qs: [
+    ['« Poser un lapin », c\'est…', ['Faire un cadeau', 'Ne pas venir à un rendez-vous', 'Partir en courant', 'Faire une blague'], 1, ''],
+    ['« Avoir le cafard », c\'est…', ['Avoir peur', 'Avoir faim', 'Être triste', 'Être sale'], 2, ''],
+    ['« Coûter les yeux de la tête », c\'est…', ['Coûter très cher', 'Faire mal', 'Être introuvable', 'Être gratuit'], 0, ''],
+    ['« Tomber dans les pommes », c\'est…', ['Faire une chute', 'Cueillir des fruits', 'Se tromper', 'S\'évanouir'], 3, ''],
+    ['« Avoir un poil dans la main », c\'est…', ['Être habile', 'Être paresseux', 'Être poilu', 'Être radin'], 1, ''],
+    ['« Raconter des salades », c\'est…', ['Dire des mensonges', 'Parler cuisine', 'Parler trop vite', 'Faire des compliments'], 0, ''],
+    ['« Être une poule mouillée », c\'est…', ['Être enrhumé', 'Être en retard', 'Être peureux', 'Être sous la pluie'], 2, ''],
+    ['« Mettre les pieds dans le plat », c\'est…', ['Faire la vaisselle', 'Aborder maladroitement un sujet délicat', 'Danser', 'Finir son assiette'], 1, ''],
+    ['« Avoir la pêche », c\'est…', ['Avoir de la chance', 'Avoir faim', 'Rougir', 'Être en pleine forme'], 3, ''],
+    ['« Il pleut des cordes », cela veut dire…', ['Qu\'il pleut très fort', 'Qu\'il grêle', 'Qu\'il fait du vent', 'Qu\'il bruine'], 0, '']
+  ]},
+  { id: 'animaux', cat: 'culture', emoji: '🐾', title: 'Les animaux', desc: 'Records et curiosités du règne animal', qs: [
+    ['Quel est l\'animal terrestre le plus rapide ?', ['Le lion', 'Le guépard', 'L\'antilope', 'Le lévrier'], 1, 'Il peut dépasser les 100 km/h en pointe.'],
+    ['Combien de bosses a un dromadaire ?', ['Une', 'Deux', 'Trois', 'Aucune'], 0, 'Le chameau, lui, en a deux.'],
+    ['Le dauphin est…', ['Un poisson', 'Un reptile', 'Un mammifère', 'Un amphibien'], 2, 'Il respire de l\'air et allaite ses petits.'],
+    ['Quel oiseau ne vole pas mais nage très bien ?', ['La mouette', 'Le pélican', 'Le cormoran', 'Le manchot'], 3, ''],
+    ['Combien de temps dure environ la gestation d\'une éléphante ?', ['9 mois', '22 mois', '12 mois', '36 mois'], 1, 'Le record chez les mammifères terrestres !'],
+    ['Comment s\'appelle le petit de la biche ?', ['Le faon', 'Le marcassin', 'Le levraut', 'Le chevreau'], 0, ''],
+    ['Quel animal est l\'emblème de la France ?', ['L\'aigle', 'Le lion', 'Le coq', 'L\'ours'], 2, ''],
+    ['Combien d\'yeux a une abeille ?', ['2', '3', '4', '5'], 3, 'Deux gros yeux et trois petits sur le dessus de la tête.'],
+    ['Quel animal peut dormir jusqu\'à 20 heures par jour ?', ['Le koala', 'Le chat', 'Le panda', 'Le paresseux'], 0, 'Les feuilles d\'eucalyptus lui donnent très peu d\'énergie.'],
+    ['Quel animal change de couleur pour communiquer ?', ['L\'iguane', 'Le caméléon', 'Le crapaud', 'Le gecko'], 1, '']
   ]}
 ];
-const QUIZ_CATS = [['maries', '💍 Mariés'], ['anniv', '🎂 Anniversaire'], ['culture', '🧠 Culture générale']];
+const QUIZ_CATS = [['maries', '💍 Mariés'], ['anniv', '🎂 Anniversaire'], ['culture', '🧠 Culture générale'], ['fetes', '🎄 Fêtes de l\'année'], ['soiree', '🪩 Musique & télé']];
 /* Quiz écrits par les mariés (stockés dans les réglages de la soirée, champ customQuiz) */
 let cqMemo = { k: null, v: [] };
 function customQuizzes() {
