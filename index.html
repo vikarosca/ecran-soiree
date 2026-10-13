@@ -9,14 +9,17 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link id="fontlink" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 /* =====================================================================
-   ÉCRAN DE SOIRÉE v4 — Universal DJ Normandie
+   ÉCRAN DE SOIRÉE v10 — Universal DJ Normandie
    5 designs (Prestige · Guinguette · Bohème · Pop Party · Disco), 3 palettes chacun
      ?v=ecran&e=CODE    → grand écran
      ?v=invite&e=CODE   → page invités
      ?v=console&e=CODE  → console DJ
+     ?v=maries&e=CODE   → espace mariés (code choisi par le DJ)
+     ?v=tv              → TV autonome (Fire TV…) : écran d'attente, allumée depuis la console
+                          (adresse courte : …/tv/ — voir le dossier tv/)
+   Ajouter &demo=1 pour travailler hors ligne (données dans le navigateur).
    ===================================================================== */
 :root{
   --bg1:#fffaf1; --bg2:#f1e2cc; --ink:#3b2f27; --muted:#8b7a6b; --card:#fff; --card2:#fbf5ec; --line:#eadbc6;
@@ -168,6 +171,38 @@ a.btn{text-decoration:none;display:inline-block}
 .mot .a{margin-top:3vh;font-family:var(--fs);font-size:5vh;color:var(--accent);text-align:right}
 .mot .seal{position:absolute;right:-2.6vh;top:-2.6vh;width:9vh;height:9vh;border-radius:50%;background:radial-gradient(circle at 35% 35%,#e06a6a,#9c2733);display:flex;align-items:center;justify-content:center;color:#ffe3dc;font-size:4vh;box-shadow:0 1vh 2vh rgba(0,0,0,.3)}
 
+/* ---- boutons « Plein écran » / « Fermer » (masqués après 6 s sans geste) ---- */
+.dchrome{position:fixed;top:clamp(8px,2vh,24px);left:0;right:0;z-index:90;display:flex;justify-content:space-between;padding:0 clamp(8px,2vw,28px);pointer-events:none;transition:opacity .5s}
+.dchrome.hid{opacity:0}
+.dchrome button{pointer-events:auto;font:700 clamp(12px,1.6vh,18px)/1 var(--fb);letter-spacing:.12em;text-transform:uppercase;color:#fff;background:rgba(10,8,20,.55);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:clamp(8px,1.4vh,14px) clamp(12px,1.8vw,22px);cursor:pointer;backdrop-filter:blur(6px);outline:none}
+.dchrome button:focus-visible,.dchrome button:hover{border-color:#f3d27a;box-shadow:0 0 0 4px rgba(243,210,122,.45)}
+.dchrome.hid button{pointer-events:none}
+/* ---- thème de la soirée (lettres dorées) ---- */
+.evtitle{background:linear-gradient(100deg,#b8862f 0%,#f7dc8b 30%,#fff3c4 50%,#e9c464 70%,#b8862f 100%);-webkit-background-clip:text;background-clip:text;color:transparent;font-family:var(--fd);font-weight:600;letter-spacing:.02em;filter:drop-shadow(0 .2vh .8vh rgba(0,0,0,.35))}
+.evpill{display:inline-block;max-width:100%;padding:.35em 1.1em;border-radius:999px;background:rgba(24,14,6,.62);box-shadow:0 .4vh 2vh rgba(0,0,0,.25);border:1px solid rgba(243,210,122,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+.scr-evt{position:absolute;top:clamp(54px,8.6vh,104px);left:10vw;right:10vw;z-index:22;text-align:center;font-size:clamp(15px,3vh,36px);line-height:1.2;pointer-events:none;transition:opacity .6s}
+.scr-evt.off{opacity:0}
+.hasevt .qz{padding-top:calc(9vh + clamp(34px,6.5vh,80px))}
+.g-evt{font-size:18px;margin:8px 0 4px;line-height:1.25}
+.g-evt .evpill{white-space:normal}
+/* ---- TV : écran d'attente ---- */
+.tvwait{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(10px,3.2vh,36px);background:radial-gradient(120% 90% at 50% 30%,#1c1240,#050212 70%);color:#fff;text-align:center;padding:4vh 4vw;overflow:hidden}
+.tvwait img{width:clamp(90px,24vh,260px);height:auto;border-radius:22%;box-shadow:0 0 6vh rgba(255,0,140,.45)}
+.tvwait h1{margin:0;font:800 clamp(22px,6vh,64px)/1.05 'Manrope',sans-serif;letter-spacing:.08em;text-transform:uppercase;background:linear-gradient(90deg,#3fd6ff,#fff,#ff4fa3);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tvwait .evtitle{font-size:clamp(18px,4.4vh,48px);max-width:88vw}
+.tvwait .ready{display:flex;align-items:center;gap:1.2vw;padding:clamp(8px,1.6vh,16px) clamp(14px,2.6vw,30px);border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);font:700 clamp(13px,2.6vh,26px)/1.2 'Manrope',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.85)}
+.tvwait .dot{width:clamp(10px,1.6vh,16px);height:clamp(10px,1.6vh,16px);border-radius:50%;background:#3fdc7c;box-shadow:0 0 12px #3fdc7c;animation:pulse 1.6s ease-in-out infinite}
+.tvwait p{margin:0;color:rgba(255,255,255,.5);font:400 clamp(12px,2.2vh,22px)/1.4 'Manrope',sans-serif}
+/* ---- console : bloc TV ---- */
+.tvpill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;font-weight:700;font-size:13px;background:var(--card2);border:1px solid var(--line);color:var(--muted)}
+.tvpill i{width:10px;height:10px;border-radius:50%;background:#b9b2a8}
+.tvpill.on{color:#1d7a43;border-color:#3fbf6f;background:rgba(63,191,111,.12)}
+.tvpill.on i{background:#3fbf6f;box-shadow:0 0 8px #3fbf6f}
+.tvbig{font-size:18px;padding:16px 26px;width:100%;margin:12px 0 8px}
+.modal{position:fixed;inset:0;z-index:300;background:rgba(10,6,3,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal>div{background:var(--card);color:var(--ink);border-radius:var(--rad);max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.modal ol{padding-left:20px;line-height:1.6;margin:6px 0 12px}
+.modal code{display:block;margin:8px 0;padding:10px;border-radius:10px;background:var(--card2);font-size:15px;word-break:break-all;text-align:center;font-weight:700}
 /* ---- défi / quiz / noir ---- */
 .defi{position:absolute;inset:0;display:grid;grid-template-columns:1.4fr 1fr;align-items:center;padding:7vh 6.5vw;gap:4vw}
 .defi .k{font-size:1.5vw;letter-spacing:.3em;text-transform:uppercase;color:var(--accent);font-weight:700}
@@ -488,9 +523,11 @@ h3.sec{font-family:var(--fd);font-weight:600;font-size:23px;margin:0 0 12px}
 <div class="err-banner" id="err"></div>
 
 <script>
+'use strict';
 /* =====================================================================
    1. CONFIGURATION
    ===================================================================== */
+const APP_VERSION = 11;
 const CONFIG = {
   firebase: {
     projectId: 'ecran-soiree-udn',
@@ -500,7 +537,11 @@ const CONFIG = {
   pollMs: 3000,
   brand: 'Universal DJ Normandie'
 };
-const FORCE_DEMO = new URLSearchParams(location.search).get('demo') === '1';
+const params = new URLSearchParams(location.search);
+const VIEW = params.get('v') || 'home';
+const EVENT = (params.get('e') || 'demo').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40) || 'demo';
+const FORCE_DEMO = params.get('demo') === '1';
+const DEMO = FORCE_DEMO || !CONFIG.firebase.projectId;
 
 /* =====================================================================
    2. DESIGNS & PALETTES
@@ -767,20 +808,19 @@ function customQuizzes() {
 const allQuizzes = () => customQuizzes().length ? QUIZZES.concat(customQuizzes()) : QUIZZES;
 function parseJSON(t, d) { try { return JSON.parse(t || '') || d; } catch (e) { return d; } }
 
-const OLD_THEMES = { champagne: ['guinguette', 'champagne'], bougie: ['guinguette', 'bougie'], fiesta: ['guinguette', 'couchant'], nuit: ['prestige', 'marine'] };
-
 /* =====================================================================
    3. OUTILS
    ===================================================================== */
-const APP_VERSION = 9;
-const params = new URLSearchParams(location.search);
-const VIEW  = params.get('v') || 'home';
-const EVENT = (params.get('e') || 'demo').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40) || 'demo';
-const DEMO  = FORCE_DEMO || !CONFIG.firebase.projectId;
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+/* Tout ce qui vient du serveur peut avoir été écrit par n'importe qui : on contrôle avant d'afficher. */
+const num = (v, d = 0) => { const n = Number(v); return Number.isFinite(n) ? n : d; };
+const SAFE_IMG = /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/;
+const safeImg = v => typeof v === 'string' && SAFE_IMG.test(v) ? v : '';
+const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
+const isActiveInput = () => { const a = document.activeElement; return !!a && a.matches('input:not([type=checkbox]):not([type=range]):not([type=color]),textarea'); };
 const rnd = (a, b) => a + Math.random() * (b - a);
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
@@ -825,7 +865,7 @@ function leavesSVG() {
   const W = Math.max(320, Math.min(1400, innerWidth || 800)), H = 64, cols = ['var(--accent)', 'var(--accent2)', 'var(--muted)'];
   let s = `<path d="M${W * .18},34 Q${W * .5},10 ${W * .82},34" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-opacity=".7"/>`;
   for (let i = 0; i <= 16; i++) {
-    const t = i / 16, x = W * .18 + W * .64 * t, y = 34 - 24 * 4 * t * (1 - t) * .5 - 0, up = i % 2 ? -1 : 1;
+    const t = i / 16, x = W * .18 + W * .64 * t, y = 34 - 24 * 4 * t * (1 - t) * .5, up = i % 2 ? -1 : 1;
     s += `<ellipse cx="${x}" cy="${y + up * 7}" rx="9" ry="4" fill="${cols[i % 3]}" fill-opacity=".85" transform="rotate(${up * 35} ${x} ${y + up * 7})"/>`;
   }
   return `<svg class="garland" viewBox="0 0 ${W} ${H}" style="height:${H}px" aria-hidden="true">${s}</svg>`;
@@ -850,9 +890,9 @@ function headerDeco() {
 
 /* Compression photo : image (≈1600 px) + vignette (≈360 px) */
 async function compressImage(file) {
-  let bmp;
+  let bmp, url = '';
   try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
-  catch (e) { bmp = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); }); }
+  catch (e) { url = URL.createObjectURL(file); bmp = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; }); }
   const w0 = bmp.width, h0 = bmp.height;
   const draw = (maxSide, q) => {
     const sc = Math.min(1, maxSide / Math.max(w0, h0)), c = document.createElement('canvas');
@@ -862,14 +902,16 @@ async function compressImage(file) {
   };
   let side = DEMO ? 900 : 1600, q = DEMO ? 0.68 : 0.82, data = '';
   for (let i = 0; i < 6; i++) { data = draw(side, q); if (data.length < (DEMO ? 220000 : 850000)) break; side *= 0.82; q = Math.max(0.5, q - 0.06); }
-  return { data, thumb: draw(DEMO ? 260 : 360, 0.7), ratio: w0 / h0 };
+  const thumb = draw(DEMO ? 260 : 360, 0.7);
+  if (bmp.close) bmp.close(); if (url) URL.revokeObjectURL(url);
+  return { data, thumb, ratio: w0 / h0 };
 }
 
 /* =====================================================================
    4. STOCKAGE — Firestore REST ou démo locale
    ===================================================================== */
-function FirestoreStore(projectId, apiKey) {
-  const API = 'https://firestore.googleapis.com/v1/', DB = `projects/${projectId}/databases/(default)/documents`, ROOT = `${DB}/ecran/${EVENT}`;
+function FirestoreStore(projectId, apiKey, event = EVENT) {
+  const API = 'https://firestore.googleapis.com/v1/', DB = `projects/${projectId}/databases/(default)/documents`, ROOT = `${DB}/ecran/${event}`;
   const enc = v => v === null || v === undefined ? { nullValue: null } : typeof v === 'boolean' ? { booleanValue: v }
     : typeof v === 'number' ? (Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v }) : { stringValue: String(v) };
   const dec = f => 'stringValue' in f ? f.stringValue : 'integerValue' in f ? Number(f.integerValue) : 'doubleValue' in f ? f.doubleValue
@@ -909,8 +951,8 @@ function FirestoreStore(projectId, apiKey) {
     recent(coll, n) { return query(coll, { desc: true, limit: n }); }
   };
 }
-function DemoStore() {
-  const MEM = {}, key = c => `ecran:${EVENT}:${c}`;
+function DemoStore(event = EVENT) {
+  const MEM = {}, key = c => `ecran:${event}:${c}`;
   const read = c => { try { return JSON.parse(localStorage.getItem(key(c)) || '{}'); } catch (e) { return MEM[c] || {}; } };
   const save = (c, o) => { try { localStorage.setItem(key(c), JSON.stringify(o)); } catch (e) { if (/quota/i.test(e.name + e.message)) throw new Error('Mode démo : stockage du navigateur plein.'); MEM[c] = o; } };
   let last = 0; const now = () => (last = Math.max(Date.now(), last + 1));
@@ -928,15 +970,142 @@ function DemoStore() {
 }
 const store = DEMO ? DemoStore() : FirestoreStore(CONFIG.firebase.projectId, CONFIG.firebase.apiKey);
 
+/* =====================================================================
+   TV AUTONOME (Fire TV, Smart TV…) — pilotée depuis la console, sur Mac comme sur PC.
+   Une petite fiche commune à toutes les soirées (« _tvhub/meta/tv ») :
+     screen : 'on' | 'off'   → la console allume la TV ou la met en attente
+     event  : code soirée    → quelle soirée la TV doit afficher
+     title  : thème affiché sur l'écran d'attente
+     seenAt : heure (TV)     → la TV signale sa présence toutes les 30 s
+   Cette fiche est à part des réglages de la soirée : le signal de la TV ne fait
+   donc redessiner aucun téléphone ni aucun écran.
+   ===================================================================== */
+const TV_HUB = '_tvhub', TV_HEARTBEAT_MS = 30000, TV_ONLINE_MS = 75000, TV_POLL_MS = 4000;
+const hub = DEMO ? DemoStore(TV_HUB) : FirestoreStore(CONFIG.firebase.projectId, CONFIG.firebase.apiKey, TV_HUB);
+const UDJ_LOGO = 'data:image/webp;base64,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';
+const TV = {
+  state: {}, lastBeatLocal: 0,
+  async read() {
+    try {
+      const d = await hub.get('meta', 'tv') || {}, prev = num(this.state.seenAt);
+      if (num(d.seenAt) && num(d.seenAt) !== prev) this.lastBeatLocal = Date.now();
+      this.state = { screen: d.screen === 'on' ? 'on' : 'off', event: SAFE_ID.test(d.event || '') ? d.event : '', title: String(d.title || '').slice(0, 80), seenAt: num(d.seenAt) };
+    } catch (e) { /* réseau : on garde le dernier état connu */ }
+    return this.state;
+  },
+  /* TV vue il y a moins de 75 s (on compare l'horloge de la TV et celle de cet ordinateur). */
+  online() {
+    const now = Date.now(), s = this.state.seenAt;
+    return (this.lastBeatLocal > 0 && now - this.lastBeatLocal < TV_ONLINE_MS) || (s > 0 && Math.abs(now - s) < TV_ONLINE_MS);
+  },
+  showing(ev = EVENT) { return this.state.screen === 'on' && this.state.event === ev; },
+  set(screen) {
+    this.state.screen = screen; this.state.event = EVENT;
+    return hub.write('meta', 'tv', { screen, event: EVENT, title: String(S().eventTitle || '').slice(0, 80) }, true, false);
+  },
+  beat() { return hub.write('meta', 'tv', { seenAt: Date.now() }, true, false).catch(e => console.warn('Signal TV non envoyé :', e.message)); },
+  standbyUrl() { return location.origin + location.pathname + '?v=tv' + (FORCE_DEMO ? '&demo=1' : ''); },
+  screenUrl(ev) { return location.origin + location.pathname + '?v=ecran&e=' + encodeURIComponent(ev) + '&tv=1' + (FORCE_DEMO ? '&demo=1' : ''); },
+  shortUrl() { return location.origin + location.pathname.replace(/[^/]*$/, '') + 'tv/'; }
+};
+
+/* ----- confort des écrans : plein écran, écran toujours allumé, boutons qui se cachent ----- */
+let wakeLock = null;
+async function keepAwake() {
+  if (wakeLock || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+  try { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); }
+  catch (e) { /* refusé : penser à désactiver l'économiseur d'écran de la TV */ }
+}
+const enterFullscreen = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {}); };
+/* Ajoute les boutons « Plein écran » et « Fermer » ; ils disparaissent après 6 s sans geste
+   et reviennent à la moindre touche de télécommande ou au moindre mouvement de souris. */
+function displayChrome(onClose) {
+  const c = document.createElement('div'); c.className = 'dchrome';
+  c.innerHTML = `<button id="dfs" type="button">⛶ Plein écran</button><button id="dclose" type="button">✕ Fermer</button>`;
+  document.body.appendChild(c);
+  const fsb = $('#dfs', c);
+  const sync = () => { fsb.style.visibility = document.fullscreenEnabled === false || document.fullscreenElement ? 'hidden' : 'visible'; };
+  let t = null;
+  const show = () => { c.classList.remove('hid'); clearTimeout(t); t = setTimeout(() => { c.classList.add('hid'); if (c.contains(document.activeElement)) document.activeElement.blur(); }, 6000); };
+  fsb.onclick = () => { enterFullscreen(); keepAwake(); show(); };
+  $('#dclose', c).onclick = onClose;
+  ['mousemove', 'pointerdown', 'touchstart', 'wheel'].forEach(ev => document.addEventListener(ev, show, { passive: true }));
+  document.addEventListener('keydown', e => {
+    const wasHidden = c.classList.contains('hid'); show();
+    // télécommande : la première touche fait réapparaître les boutons et place le focus dessus
+    if (wasHidden && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', ' '].includes(e.key) && !c.contains(document.activeElement)) { (fsb.style.visibility === 'hidden' ? $('#dclose', c) : fsb).focus(); if (e.key === 'Enter' || e.key === ' ') e.preventDefault(); }
+  });
+  document.addEventListener('fullscreenchange', () => { sync(); show(); });
+  document.addEventListener('visibilitychange', keepAwake);
+  sync(); show();
+  return c;
+}
+/* Fenêtre « mode d'emploi » (console). */
+function modal(html) {
+  const m = document.createElement('div'); m.className = 'modal';
+  m.innerHTML = `<div>${html}<div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn primary" id="mok">J'ai compris</button></div></div>`;
+  document.body.appendChild(m);
+  m.onclick = e => { if (e.target === m) m.remove(); }; $('#mok', m).onclick = () => m.remove();
+}
+function showFireTvHelp() {
+  const addr = TV.shortUrl().replace(/^https?:\/\//, '');
+  modal(`<h3 class="sec" style="margin-top:0">📺 Préparer la TV (Fire TV)</h3>
+    <p class="sub" style="margin:0"><b>À faire une seule fois sur le Fire TV</b></p>
+    <ol><li>Ouvrez l'application <b>Silk</b> (navigateur d'Amazon, gratuit dans l'Appstore).</li>
+      <li>Tapez cette adresse avec la télécommande :<code>${esc(addr)}</code></li>
+      <li>Ajoutez-la aux <b>favoris</b> de Silk.</li>
+      <li>Réglages du Fire TV → Affichage et sons → <b>Économiseur d'écran → Jamais</b>.</li></ol>
+    <p class="sub" style="margin:0"><b>À chaque soirée</b></p>
+    <ol><li>Sur la TV : Silk → votre favori. L'écran affiche « Écran TV prêt · en attente ». Appuyez sur <b>Plein écran</b> avec la télécommande.</li>
+      <li>Dans cette console : la pastille passe à « TV prête ». Cliquez sur <b>« Afficher sur la TV »</b>. C'est tout.</li></ol>
+    <p class="sub">La même adresse sert pour toutes vos soirées : c'est la console qui dit à la TV quelle soirée afficher. « Mettre en attente » remet l'écran d'attente.</p>`);
+}
+/* ----- Chromecast (API Presentation de Google Chrome, gratuite) ----- */
+let castConnection = null;
+const castSupported = () => typeof window.PresentationRequest === 'function';
+function startCast(onChange) {
+  if (!castSupported()) {
+    return modal(`<h3 class="sec" style="margin-top:0">📡 Chromecast</h3><p>Ce navigateur ne sait pas diffuser directement.</p>
+      <p>Utilisez <b>Google Chrome</b> sur l'ordinateur (sur le <b>même Wi-Fi</b> que le Chromecast), ou ouvrez le grand écran puis menu <b>⋮ → Caster…</b></p>`);
+  }
+  let request;
+  try { request = new PresentationRequest([viewUrl('ecran') + '&tv=1&cast=1']); }
+  catch (e) { return modal(`<h3 class="sec" style="margin-top:0">Diffusion impossible</h3><p>${esc(e.message)}</p>`); }
+  request.start().then(conn => {   // appelé directement dans le clic (exigence de Chrome)
+    castConnection = conn;
+    const ended = () => { if (castConnection === conn) { castConnection = null; onChange(); } };
+    conn.addEventListener('terminate', ended); conn.addEventListener('close', ended);
+    toast('📡 Diffusion lancée sur le Chromecast'); onChange();
+  }).catch(err => {
+    if (err && err.name === 'NotAllowedError') return;   // fenêtre de choix fermée
+    const nf = err && err.name === 'NotFoundError';
+    modal(`<h3 class="sec" style="margin-top:0">${nf ? 'Aucun Chromecast trouvé' : 'Diffusion impossible'}</h3>${nf
+      ? '<p>Vérifiez que :</p><ol><li>le Chromecast est allumé (TV sur la bonne entrée HDMI) ;</li><li>l\'ordinateur et le Chromecast sont sur le <b>même Wi-Fi</b> ;</li><li>vous utilisez <b>Google Chrome</b>.</li></ol>'
+      : `<p>${esc(err && err.message || 'Erreur inconnue')}</p>`}`);
+  });
+}
+function stopCast(onChange) { try { castConnection?.terminate(); } catch (e) { /* déjà terminée */ } castConnection = null; onChange(); }
+
 const cache = { settings: {}, photos: {}, messages: {}, teams: {}, reactions: {} };
 const lastRev = {}, lastMt = {};
+const SYNC_OVERLAP_MS = 5000;   // marge de sécurité entre deux synchros (horloge serveur)
+/* Contrôle des documents reçus : identifiant sûr, nombres valides, images au bon format. */
+function cleanDoc(coll, d) {
+  if (!d || !SAFE_ID.test(d.id)) return null;
+  if (coll === 'photos') { d.thumb = safeImg(d.thumb); d.likes = num(d.likes); d.ts = num(d.ts); }
+  if (coll === 'messages') d.ts = num(d.ts);
+  if (coll === 'teams') d.score = num(d.score);
+  return d;
+}
+function storeDocs(coll, docs) {
+  for (const raw of docs) { const d = cleanDoc(coll, raw); if (!d) continue; cache[coll][d.id] = d; if ((d.mt || 0) > (lastMt[coll] || 0)) lastMt[coll] = d.mt; }
+}
 async function syncOnce(colls) {
   const rev = await store.getRev(), changed = [];
   for (const c of colls) {
-    if (c === 'reactions') { const r = rev.meta || 0; if (lastRev.meta === r) continue; cache.reactions = (await store.get('meta', 'reactions')) || {}; lastRev.meta = r; changed.push('reactions'); continue; }
+    if (c === 'reactions') { const r = rev.meta || 0; if (lastRev.meta === r) continue; const rx = (await store.get('meta', 'reactions')) || {}; cache.reactions = Object.fromEntries(REACTS.map(([f]) => [f, num(rx[f])])); lastRev.meta = r; changed.push('reactions'); continue; }
     const r = rev[c] || 0; if (lastRev[c] === r) continue;
-    const docs = await store.delta(c, lastMt[c] ? lastMt[c] - 15000 : 0);
-    for (const d of docs) { cache[c][d.id] = d; if ((d.mt || 0) > (lastMt[c] || 0)) lastMt[c] = d.mt; }
+    storeDocs(c, await store.delta(c, lastMt[c] ? lastMt[c] - SYNC_OVERLAP_MS : 0));
     lastRev[c] = r; changed.push(c);
   }
   if (changed.includes('settings')) checkUpdate();
@@ -967,7 +1136,7 @@ function startSync(colls, onChange, ms = CONFIG.pollMs) {
 const DEFAULTS = {
   names: '', subtitle: 'Bienvenue à notre mariage', date: '', countdownTo: '', countdownLabel: 'Ouverture du bal',
   mode: 'auto', moderation: false, slideSec: 8, showQr: true, showStats: true, reactions: true, quizAuto: false,
-  design: '', palette: '', theme: '', accent: '', pinned: '', pinnedAt: 0, announce: '', announceAt: 0, announceSec: 20, quizId: '', quizQ: 0, quizPhase: 'q', quizAt: 0, quizSec: 20, quizPick: '', quizRun: 0,
+  design: '', palette: '', accent: '', pinned: '', pinnedAt: 0, announce: '', announceAt: 0, announceSec: 20, quizId: '', quizQ: 0, quizPhase: 'q', quizAt: 0, quizSec: 20, quizPick: '', quizRun: 0,
   challenges: "Un selfie avec les mariés\nLa plus belle grimace de la table\nUn toast à l'amour 🥂\nLe pas de danse le plus fou\nVotre table au complet"
 };
 const rawMode = () => (cache.settings.main || {}).mode;
@@ -986,11 +1155,19 @@ function autoView(s) {
   s.autoLeft = Math.max(0, Math.ceil(((s.quizPhase === 'q' ? s.quizAt + sec * 1000 : s.quizAt + slot * 1000) - Date.now()) / 1000));
   return s;
 }
-const S = () => autoView(Object.assign({}, DEFAULTS, cache.settings.main || {}));
+const eventTitle = () => String(S().eventTitle || '').trim().slice(0, 80);
+const NUM_SETTINGS = ['slideSec', 'announceSec', 'announceAt', 'pinnedAt', 'quizQ', 'quizAt', 'quizSec', 'quizRun', 'autoAt', 'autoRev', 'reloadAt', 'appVer'];
+/* S() : réglages de la soirée (valeurs par défaut + serveur), avec l'état du quiz automatique calculé. */
+function S() {
+  const s = Object.assign({}, DEFAULTS, cache.settings.main || {});
+  for (const k of NUM_SETTINGS) s[k] = num(s[k], DEFAULTS[k] || 0);
+  return autoView(s);
+}
+/* Empreinte de l'état du quiz : quand elle change, les écrans se redessinent. */
 const quizSig = () => { const s = S(); return [s.mode, s.quizId, s.quizQ, s.quizPhase, s.quizPick, s.quizAt, s.quizSec, s.quizRun].join('|'); };
-function designKey() { const s = S(); if (DESIGNS[s.design]) return s.design; if (OLD_THEMES[s.theme]) return OLD_THEMES[s.theme][0]; return 'guinguette'; }
+function designKey() { const k = S().design; return DESIGNS[k] ? k : 'guinguette'; }
 function design() { return DESIGNS[designKey()]; }
-function paletteKey() { const s = S(), d = design(); if (d.palettes[s.palette]) return s.palette; if (OLD_THEMES[s.theme] && OLD_THEMES[s.theme][0] === designKey()) return OLD_THEMES[s.theme][1]; return Object.keys(d.palettes)[0]; }
+function paletteKey() { const p = S().palette, d = design(); return d.palettes[p] ? p : Object.keys(d.palettes)[0]; }
 const live = (coll, status = 'ok') => Object.values(cache[coll]).filter(d => d.status === status).sort((a, b) => (a.ts || 0) - (b.ts || 0));
 const challenges = () => (S().challenges || '').split('\n').map(x => x.trim()).filter(Boolean).slice(0, 12);
 let loadedFonts = '';
@@ -1003,13 +1180,133 @@ function applyTheme() {
   if (loadedFonts !== d.gf) { loadedFonts = d.gf; $('#fontlink').href = 'https://fonts.googleapis.com/css2?family=' + d.gf + '&display=swap'; }
   const mc = $('meta[name="theme-color"]'); if (mc) mc.content = pal.bg1;
 }
-const photoCache = new Map();
+/* Photo pleine taille : petit cache (les 40 dernières) pour ne pas saturer la mémoire. */
+const photoCache = new Map(), PHOTO_CACHE_MAX = 40;
+const fetchPhotoData = id => store.get('photoData', id).then(d => safeImg(d && d.data) || null).catch(() => null);
 async function photoSrc(id) {
-  if (photoCache.has(id)) return photoCache.get(id);
-  const p = store.get('photoData', id).then(d => d && d.data || null).catch(() => null);
-  photoCache.set(id, p); const v = await p; if (!v) photoCache.delete(id); return v;
+  if (photoCache.has(id)) { const p = photoCache.get(id); photoCache.delete(id); photoCache.set(id, p); return p; }
+  const p = fetchPhotoData(id); photoCache.set(id, p);
+  while (photoCache.size > PHOTO_CACHE_MAX) photoCache.delete(photoCache.keys().next().value);
+  const v = await p; if (!v) photoCache.delete(id); return v;
 }
 const saveSettings = patch => store.write('settings', 'main', patch, true);
+const liveTeams = () => Object.values(cache.teams).filter(t => t.status !== 'del' && t.name);
+/* Classement des équipes + gagnant(s) (ex æquo possibles, seulement si au moins 1 point). */
+function ranking() {
+  const list = liveTeams().sort((a, b) => b.score - a.score);
+  const top = list.length ? list[0].score : 0;
+  return { list, best: top > 0 ? list.filter(t => t.score === top) : [] };
+}
+const guestbookText = mots => mots.map(m => `« ${m.text} »\n— ${m.author || 'Anonyme'}\n`).join('\n');
+const normChallenges = text => String(text || '').split('\n').map(x => x.trim().slice(0, 90)).filter(Boolean).slice(0, 12).join('\n');
+/* Charge toutes les polices des designs (pour les aperçus de styles). */
+function loadAllFonts() {
+  if (document.getElementById('allfonts')) return;
+  const l = document.createElement('link'); l.id = 'allfonts'; l.rel = 'stylesheet';
+  l.href = 'https://fonts.googleapis.com/css2?family=' + Object.values(DESIGNS).map(x => x.gf).join('&family=') + '&display=swap';
+  document.head.appendChild(l);
+}
+function designPreview(k) {
+  const d = DESIGNS[k], v = Object.values(d.palettes)[0].v;
+  const deco = { gold: '✦ ◆ ✦', garland: '💡💡💡', leaves: '🌿 🍃 🌿', confetti: '🎉 ✨ 🎈', disco: '🪩 ✨' }[d.amb];
+  const extra = { prestige: 'text-transform:uppercase;letter-spacing:.08em;font-size:20px', pop: `font-weight:700;text-shadow:2px 2px 0 ${v.accent2}`, disco: `text-shadow:0 0 10px ${v.accent}`, boheme: 'font-weight:700;text-transform:uppercase' }[k] || '';
+  return `<div class="pv" style="background:radial-gradient(120% 90% at 50% 0%,${v.bg1},${v.bg2});color:${v.accent}"><span style="font-size:15px;position:absolute;top:8px;letter-spacing:.2em">${deco}</span>
+    <span style="font-family:${d.fonts.d};color:${v.ink};font-size:28px;${extra}">Julie <span style="font-family:${d.fonts.s};color:${v.accent}">&amp;</span> Tom</span></div>`;
+}
+/* Choix du style (designs + palettes + couleur perso) : partagé par la console et l'espace mariés. */
+function stylePickerHtml(title) {
+  const s = S(), dk = designKey(), pk = paletteKey(), d = DESIGNS[dk];
+  return `<div class="card" style="margin-bottom:16px"><h3 class="sec" style="margin-top:0">${title}</h3><p class="sub">Chaque style change tout : polices, décor animé, présentation des photos et des mots doux, page des invités.</p>
+      <div class="designs">${Object.entries(DESIGNS).map(([k, x]) => `<button data-dz="${k}" class="${k === dk ? 'on' : ''}">${designPreview(k)}<div class="tx"><b>${x.name}</b><small><b style="display:inline;font-size:12px;color:var(--accent)">${x.mood}</b> — ${x.desc}</small></div></button>`).join('')}</div></div>
+    <div class="card" style="margin-bottom:16px"><h3 class="sec" style="margin-top:0">Couleurs « ${d.name} »</h3>
+      <div class="palettes">${Object.entries(d.palettes).map(([k, p]) => `<button data-pal="${k}" class="${k === pk ? 'on' : ''}"><i style="background:linear-gradient(135deg,${p.v.bg1},${p.v.bg2});--dot:${p.v.accent}"></i>${p.name}</button>`).join('')}</div>
+      <div class="row" style="margin-top:14px"><label class="field" style="margin:0;flex:0 0 auto"><span>Couleur du mariage (facultatif)</span><input type="color" id="acc" value="${esc(s.accent || d.palettes[pk].v.accent)}" style="height:46px;width:90px;padding:4px"></label>
+        <button class="btn sm" id="accR">Couleur de la palette</button></div></div>`;
+}
+function bindStylePicker(save) {
+  const dk = designKey();
+  $$('[data-dz]').forEach(b => b.onclick = () => save({ design: b.dataset.dz, palette: Object.keys(DESIGNS[b.dataset.dz].palettes)[0], accent: '' }, 'Style « ' + DESIGNS[b.dataset.dz].name + ' » appliqué ✨'));
+  $$('[data-pal]').forEach(b => b.onclick = () => save({ design: dk, palette: b.dataset.pal, accent: '' }));
+  $('#acc').onchange = e => save({ accent: e.target.value });
+  $('#accR').onclick = () => save({ accent: '' });
+}
+/* Écran « code d'accès » (console DJ et espace mariés). check(valeur) → true si correct. */
+function pinScreen({ kicker, title, sub = '', check, onOk }) {
+  $('#app').innerHTML = `${headerDeco()}<div class="pin"><div class="kicker">${kicker}</div><h2 class="serif" style="font-weight:500;font-size:34px;margin:8px 0 ${sub ? 6 : 18}px">${title}</h2>
+    ${sub ? `<p style="color:var(--muted);margin:0 0 16px">${sub}</p>` : ''}
+    <div class="pinwrap"><input class="input masked" id="pin" type="text" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" style="text-align:center;font-size:26px;letter-spacing:.3em;padding-right:44px">
+    <button class="eye" id="eye" type="button" title="Afficher le code">👁️</button></div>
+    <button class="btn primary" id="go" style="width:100%;margin-top:12px">Entrer</button><p id="bad" style="color:#d9605a;min-height:22px"></p></div>`;
+  const tryIt = () => { const r = check($('#pin').value); if (r) onOk(r); else $('#bad').textContent = 'Code incorrect — vérifiez avec l\'œil 👁️'; };
+  $('#go').onclick = tryIt;
+  $('#pin').onkeydown = e => { if (e.key === 'Enter') tryIt(); };
+  $('#pin').oninput = () => { $('#bad').textContent = ''; const r = check($('#pin').value); if (r) onOk(r); };
+  $('#eye').onclick = () => $('#pin').classList.toggle('masked');
+  $('#pin').focus();
+}
+const pinMatches = (typed, code) => !!code && (normPin(typed) === normPin(code) || String(typed).trim() === code);
+/* Visionneuse photo plein écran. opts.like = { liked, onLike } pour le bouton « J'aime ». */
+async function openLightbox(p, opts = {}) {
+  const lb = document.createElement('div'); lb.className = 'lb';
+  lb.innerHTML = `<img src="${p.thumb}" alt=""><div class="meta">${esc(p.caption || '')} ${p.author ? '— ' + esc(p.author) : ''}</div>
+    <div class="row">${opts.like ? `<button class="btn primary" id="lk">${opts.like.liked ? '❤️ Aimée' : '🤍 J\'aime'}</button>` : ''}<a class="btn ${opts.like ? '' : 'primary'}" id="dl" download="${esc(Saver.fileName(p))}">⬇ Enregistrer</a><button class="btn" id="cl">Fermer</button></div>`;
+  document.body.appendChild(lb);
+  lb.onclick = e => { if (e.target === lb) lb.remove(); }; $('#cl', lb).onclick = () => lb.remove();
+  if (opts.like) $('#lk', lb).onclick = () => { if (opts.like.liked) return; opts.like.liked = true; $('#lk', lb).textContent = '❤️ Aimée'; opts.like.onLike(); };
+  const full = await photoSrc(p.id);
+  if (!document.body.contains(lb)) return;
+  if (full) { $('img', lb).src = full; $('#dl', lb).href = full; } else $('#dl', lb).href = p.thumb;
+}
+function confetti() {
+  const cols = ['var(--accent)', 'var(--accent2)', '#e06a6a', '#ffd8a0', '#8fc7a8', '#f4a3b4'];
+  for (let i = 0; i < 70; i++) {
+    const c = document.createElement('div'); c.className = 'confetti'; c.style.left = rnd(0, 100) + 'vw'; c.style.background = cols[i % cols.length];
+    c.style.animationDuration = rnd(1.8, 3.4) + 's'; c.style.animationDelay = rnd(0, .5) + 's'; c.style.borderRadius = i % 3 ? '2px' : '50%';
+    document.body.appendChild(c); setTimeout(() => c.remove(), 4200);
+  }
+}
+/* ----- ZIP maison (sans compression : les JPEG sont déjà compressés) ----- */
+function crc32(buf) {
+  let t = crc32.t; if (!t) { t = crc32.t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } }
+  let c = 0xFFFFFFFF; for (let i = 0; i < buf.length; i++) c = t[(c ^ buf[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function makeZip(files) {
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  for (const f of files) {
+    const nm = enc.encode(f.name), crc = crc32(f.data), sz = f.data.length;
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(12, 0x21, true);
+    h.setUint32(14, crc, true); h.setUint32(18, sz, true); h.setUint32(22, sz, true); h.setUint16(26, nm.length, true);
+    parts.push(h.buffer, nm, f.data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(14, 0x21, true);
+    c.setUint32(16, crc, true); c.setUint32(20, sz, true); c.setUint32(24, sz, true); c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
+    central.push(c.buffer, nm); off += 30 + nm.length + sz;
+  }
+  const cs = central.reduce((a, b) => a + b.byteLength, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...central, e.buffer], { type: 'application/zip' });
+}
+function downloadBlob(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); }
+/* Télécharge toutes les photos + le livre d'or dans un ZIP. onStep(i, total) pour la progression. */
+async function downloadAllZip(onStep) {
+  const ph = live('photos'), ms = live('messages'), files = [], enc = new TextEncoder(); let fail = 0;
+  for (let i = 0; i < ph.length; i++) {
+    onStep(i + 1, ph.length);
+    const data = await fetchPhotoData(ph[i].id);
+    if (!data) { fail++; continue; }
+    files.push({ name: Saver.fileName(ph[i]), data: new Uint8Array(await (await fetch(data)).arrayBuffer()) });
+  }
+  if (ms.length) files.push({ name: 'livre-d-or.txt', data: enc.encode(guestbookText(ms)) });
+  downloadBlob(makeZip(files), `photos-${EVENT}.zip`);
+  return { photos: files.length - (ms.length ? 1 : 0), fail };
+}
+/* Fin de soirée : efface une photo du serveur (image + vignette). */
+async function wipePhoto(id) {
+  await store.remove('photoData', id).catch(() => {});
+  await store.write('photos', id, { status: 'wiped' });
+  photoCache.delete(id);
+}
 
 /* =====================================================================
    5. ACCUEIL (choix de la vue)
@@ -1065,7 +1362,7 @@ const Saver = {
     if (perm !== 'granted') return false;
     await this.open(root); this.run(); return true;
   },
-  fileName(p, n) {
+  fileName(p) {
     const d = new Date(p.ts || Date.now()), z = x => String(x).padStart(2, '0');
     const who = (p.author || 'invite').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w-]+/g, '-').slice(0, 24) || 'invite';
     return `${d.getFullYear()}${z(d.getMonth() + 1)}${z(d.getDate())}_${z(d.getHours())}h${z(d.getMinutes())}_${who}_${p.id.slice(-5)}.jpg`;
@@ -1077,12 +1374,12 @@ const Saver = {
     try {
       for (const p of live('photos')) {
         if (this.saved.has(p.id)) continue;
-        const src = await photoSrc(p.id); if (!src) continue;
+        const src = await fetchPhotoData(p.id); if (!src) continue;
         await this.write(this.fileName(p), await (await fetch(src)).blob());
         this.saved.add(p.id); lsSet('ecran:saved:' + EVENT, JSON.stringify([...this.saved])); this.onUpdate(true);
       }
       const mots = live('messages');
-      if (mots.length) await this.write('mots-doux.txt', new Blob([mots.map(m => `« ${m.text} »\n— ${m.author || 'Anonyme'}\n`).join('\n')], { type: 'text/plain' }));
+      if (mots.length) await this.write('mots-doux.txt', new Blob([guestbookText(mots)], { type: 'text/plain' }));
     } catch (e) { showError('Sauvegarde sur l\'ordinateur : ' + e.message); }
     this.busy = false; this.onUpdate(false);
     if (this.again) { this.again = false; this.run(); }
@@ -1171,7 +1468,7 @@ function Ambiance(canvas) {
       }
     }
     if (mode === 'garland') {
-      ctx.strokeStyle = `rgba(${cssv('--paperInk') ? '90,70,50' : '90,70,50'},.45)`; ctx.lineWidth = 1.6;
+      ctx.strokeStyle = 'rgba(90,70,50,.45)'; ctx.lineWidth = 1.6;
       const sag = h * .085, top = h * .015;
       for (const [x0, x1] of swags) { ctx.beginPath(); ctx.moveTo(x0, top); ctx.quadraticCurveTo((x0 + x1) / 2, top + 2 * sag, x1, top); ctx.stroke(); }
       for (const b of bulbs) {
@@ -1188,12 +1485,14 @@ function Ambiance(canvas) {
 
 function viewScreen() {
   document.title = 'Grand écran — ' + EVENT;
+  const TV_MODE = params.get('tv') === '1', CAST = params.get('cast') === '1';   // TV autonome / Chromecast : pas d'écran « Lancer »
   $('#app').innerHTML = `
   <div class="screen" id="scr">
     <canvas id="amb"></canvas>
     <div class="frame-deco"><i></i><i></i><i></i><i></i></div>
     <div id="stage"></div>
     <div class="stats" id="stats"></div>
+    <div class="scr-evt off" id="sevt"><span class="evpill"><span class="evtitle" id="sevtt"></span></span></div>
     <div class="qrbox" id="qrbox"><div class="q" id="qr"></div><div class="t" id="qrt">Scannez-moi&nbsp;✨<small>photos · mots doux · défis</small></div></div>
     <div class="updbadge" id="upd">🔄 Nouvelle version disponible : appuyez sur <b>R</b></div>
     <div class="toastbig" id="tb"></div>
@@ -1211,8 +1510,7 @@ function viewScreen() {
   const guestUrl = viewUrl('invite');
   makeQR($('#qr'), guestUrl, 220);
   const scr = $('#scr'), stage = $('#stage');
-  const fs = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {}); };
-  const wake = () => navigator.wakeLock?.request('screen').catch(() => {});
+  const fs = enterFullscreen, wake = keepAwake;
   const sb = $('#sb');
   Saver.onUpdate = flash => { sb.textContent = `💾 ${Saver.saved.size} photo${Saver.saved.size > 1 ? 's' : ''} sauvegardée${Saver.saved.size > 1 ? 's' : ''} · ${Saver.root ? Saver.root.name + '/souvenirs-' + EVENT : ''}`; if (flash) { sb.classList.add('flash'); clearTimeout(sb.t); sb.t = setTimeout(() => sb.classList.remove('flash'), 3500); } };
   if (!Saver.supported()) { $('#saveDir').remove(); $('#saveInfo').textContent = 'Sauvegarde automatique sur l\'ordinateur : ouvrez cette page avec Chrome ou Edge.'; }
@@ -1223,19 +1521,44 @@ function viewScreen() {
     catch (err) { if (err.name !== 'AbortError') showError(err.message); }
   });
   $('#go').onclick = async e => { e.stopPropagation(); fs(); wake(); if (Saver.supported() && !Saver.dir) { try { await Saver.restore(); } catch (err) {} } $('#start').remove(); };
+  /* « Fermer » : sur la TV → écran d'attente ; sur un ordinateur → ferme la fenêtre (ou quitte le plein écran). */
+  displayChrome(() => {
+    if (TV_MODE && !CAST) return location.replace(TV.standbyUrl());
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    window.close();
+    setTimeout(() => toast('Vous pouvez fermer cet onglet'), 300);
+  });
+  if (TV_MODE) {
+    $('#start').remove(); wake();
+    if (!CAST) {   // TV autonome : signale sa présence et suit le bouton de la console
+      TV.beat(); setInterval(() => TV.beat(), TV_HEARTBEAT_MS);
+      const follow = async () => {
+        const st = await TV.read();
+        if (!TV.showing()) location.replace(st.screen === 'on' && st.event ? TV.screenUrl(st.event) : TV.standbyUrl());
+      };
+      setInterval(follow, TV_POLL_MS);
+    }
+  }
+  /* Thème de la soirée : bandeau doré en haut, masqué sur les scènes plein cadre (photo, écran noir). */
+  const showTitle = () => {
+    const t = eventTitle(), txt = t ? '✨ ' + t + ' ✨' : '', el = $('#sevtt');
+    if (el.textContent !== txt) el.textContent = txt;
+    const off = !t || (cur && ['vedette', 'noir'].includes(cur.k));
+    $('#sevt').classList.toggle('off', off); scr.classList.toggle('hasevt', !off);
+  };   // premier affichage : au premier rendu de scène (overlays)
   document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && wake());
   let mv; scr.addEventListener('mousemove', () => { scr.classList.add('cur'); clearTimeout(mv); mv = setTimeout(() => scr.classList.remove('cur'), 2200); });
   document.addEventListener('keydown', e => { if (e.key === 'f' || e.key === 'F') fs(); if (e.key === 'ArrowRight') advance(); if ((e.key === 'r' || e.key === 'R') && updatePending) hardReload(); });
 
   let cur = null, timer = null, step = -1, idxP = -1, idxM = -1, idxD = -1, shown = new Set(), seenPin = null, lastMode = null, freshRun = 0, lastDesign = designKey() + paletteKey();
   const PLAY = ['mur', 'mot', 'vedette', 'accueil', 'mosaique', 'vedette', 'mot', 'defi', 'mur', 'vedette', 'quiz', 'mot'];
-  const photos = () => live('photos'), msgs = () => live('messages'), teams = () => Object.values(cache.teams).filter(t => t.status !== 'del');
+  const photos = () => live('photos'), msgs = () => live('messages');
   const tilt = (a = 2.2) => designKey() === 'prestige' ? 0 : rnd(-a, a);
 
   function available(k, s) {
     const np = photos().length;
     return k === 'mur' ? np >= 3 : k === 'mosaique' ? np >= 6 : k === 'vedette' ? np >= 1 : k === 'mot' ? msgs().length >= 1
-      : k === 'defi' ? challenges().length > 0 : k === 'quiz' ? (s.quizAuto && teams().length > 0) : true;
+      : k === 'defi' ? challenges().length > 0 : k === 'quiz' ? (s.quizAuto && liveTeams().length > 0) : true;
   }
   function pickNext() {
     const s = S(), mode = s.mode;
@@ -1277,7 +1600,7 @@ function viewScreen() {
     return el;
   }
   async function sceneVedette(d, fresh) {
-    const src = await photoSrc(d.id) || d.thumb; if (!src) return null;
+    const src = await photoSrc(d.id) || d.thumb; if (!src) return null;   // photoSrc et thumb sont déjà contrôlées
     const el = document.createElement('div'), img = new Image(); img.src = src; try { await img.decode(); } catch (e) {}
     const cap = `${esc(d.caption || '')}${d.author ? `<small>${d.caption ? '' : 'Photo de '}${esc(d.author)}</small>` : ''}${d.likes ? `<small>❤️ ${d.likes}</small>` : ''}`;
     el.innerHTML = `<div class="ved-bg" style="background-image:url('${src}')"></div>
@@ -1340,7 +1663,7 @@ function viewScreen() {
     const n = all.length, cols = Math.max(2, Math.round(Math.sqrt(n * innerWidth / innerHeight))), rows = Math.ceil(n / cols);
     const tiles = []; for (let i = 0; i < cols * rows; i++) tiles.push(all[i % n]);
     const el = document.createElement('div'), s = S();
-    el.innerHTML = `<div class="mosa" style="grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},1fr)">${tiles.map((p, i) => `<div style="background-image:url('${p.thumb || ''}');animation-delay:${(i * 0.045).toFixed(2)}s" data-id="${p.id}"></div>`).join('')}</div>
+    el.innerHTML = `<div class="mosa" style="grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},1fr)">${tiles.map((p, i) => `<div style="background-image:url('${p.thumb}');animation-delay:${(i * 0.045).toFixed(2)}s" data-id="${p.id}"></div>`).join('')}</div>
       <div class="mosa-card"><div class="n">${namesHtml(s.names)}</div><div class="s">${photos().length} souvenirs partagés · merci ♥</div></div>`;
     $$('.mosa div[data-id]', el).forEach(t => { if (!/url\(['"]?data/.test(t.style.backgroundImage)) photoSrc(t.dataset.id).then(s => s && (t.style.backgroundImage = `url('${s}')`)); });
     return el;
@@ -1363,11 +1686,10 @@ function viewScreen() {
     return el;
   }
   function sceneQuiz() {
-    const t = teams().sort((a, b) => (b.score || 0) - (a.score || 0)), max = Math.max(1, ...t.map(x => x.score || 0));
+    const { list: t, best } = ranking(), max = Math.max(1, ...t.map(x => x.score));
     const el = document.createElement('div'); el.className = 'quiz';
-    const best = t.length && (t[0].score || 0) > 0 ? t.filter(x => (x.score || 0) === (t[0].score || 0)) : [];
     el.innerHTML = `<h2>Quiz Party · <span>le classement</span></h2>` + (best.length ? `<div class="qwin">🏆 ${best.length > 1 ? 'Ex æquo' : 'Victoire'} : ${best.map(x => esc(x.name)).join(' & ')} !</div>` : '') + (t.length ? t.slice(0, best.length ? 8 : 10).map((x, i) => `
-      <div class="qrow ${best.includes(x) ? 'top' : ''}"><div class="rk">${i === 0 ? '👑' : i + 1}</div><div class="qbar"><i style="width:${Math.max(5, (x.score || 0) / max * 100)}%"></i><span>${esc(x.name)}</span></div><div class="sc">${x.score || 0}</div></div>`).join('')
+      <div class="qrow ${best.includes(x) ? 'top' : ''}"><div class="rk">${i === 0 ? '👑' : i + 1}</div><div class="qbar"><i style="width:${Math.max(5, x.score / max * 100)}%"></i><span>${esc(x.name)}</span></div><div class="sc">${x.score}</div></div>`).join('')
       : '<p style="text-align:center;color:var(--muted);font-size:2vw">Les équipes arrivent…</p>');
     return el;
   }
@@ -1393,7 +1715,9 @@ function viewScreen() {
   setInterval(qzTick, 250);
   function sceneNoir() { const el = document.createElement('div'); el.className = 'noir'; el.textContent = S().names || ''; return el; }
 
+  let renderGen = 0;   // chaque rendu a un numéro : un rendu dépassé (photo lente) est abandonné
   async function render(item) {
+    const gen = ++renderGen;
     let c;
     switch (item.k) {
       case 'vedette': c = await sceneVedette(item.d, item.fresh); break;
@@ -1406,15 +1730,17 @@ function viewScreen() {
       case 'quizq': c = sceneQuizQ(); break;
       default: c = sceneAccueil();
     }
+    if (gen !== renderGen) return false;
     if (!c) { c = sceneAccueil(); item = { k: 'accueil' }; }
     const sc = document.createElement('div'); sc.className = 'scene'; sc.appendChild(c);
     $$('.scene', stage).forEach(o => { o.classList.remove('in'); o.classList.add('out'); setTimeout(() => o.remove(), 1200); });
     stage.appendChild(sc); requestAnimationFrame(() => requestAnimationFrame(() => sc.classList.add('in')));
     cur = item; tick(); overlays();
+    return true;
   }
   async function advance() {
     clearTimeout(timer);
-    const item = pickNext(); await render(item);
+    const item = pickNext(); if (!(await render(item))) return;
     const s = S(), base = Math.max(4, Number(s.slideSec) || 8) * 1000; lastMode = s.mode;
     if (['accueil', 'quiz', 'quizq', 'noir', 'mosaique', 'defi'].includes(s.mode) && !item.d) return;
     const k = cur.k;
@@ -1430,6 +1756,7 @@ function viewScreen() {
     const qt = qz ? 'Jouez au quiz&nbsp;🎤<small>scannez avec votre téléphone</small>' : 'Scannez-moi&nbsp;✨<small>photos · mots doux · défis</small>';
     if ($('#qrt').innerHTML !== qt) $('#qrt').innerHTML = qt;
     const st = $('#stats'); st.classList.toggle('hide', !s.showStats || k === 'noir');
+    showTitle();
     const nr = REACTS.reduce((a, [f]) => a + (cache.reactions[f] || 0), 0);
     st.innerHTML = `<span>📸 ${photos().length}</span><span>💌 ${msgs().length}</span>${s.reactions ? `<span>❤️ ${nr}</span>` : ''}`;
   }
@@ -1478,7 +1805,7 @@ function viewScreen() {
   function onScreenSync(changed) {
     scrSig = quizSig();
     let redesign = false;
-    if (changed.includes('settings')) { applyTheme(); checkAnnounce(); const dk = designKey() + paletteKey(); if (dk !== lastDesign) { lastDesign = dk; redesign = true; setTimeout(() => amb.refresh(), 60); } }
+    if (changed.includes('settings')) { applyTheme(); checkAnnounce(); showTitle(); const dk = designKey() + paletteKey(); if (dk !== lastDesign) { lastDesign = dk; redesign = true; setTimeout(() => amb.refresh(), 60); } }
     if (changed.includes('reactions')) flyReactions();
     if (changed.includes('photos') || changed.includes('messages')) Saver.run();
     announceArrivals();
@@ -1491,7 +1818,31 @@ function viewScreen() {
     if (s.mode === 'auto' && cur && cur.k === 'accueil' && changed.includes('photos') && photos().some(p => !shown.has('photo' + p.id))) { advance(); return; }
     overlays();
   }
-  setTimeout(() => { if (!started) { started = true; applyTheme(); amb.refresh(); advance(); } }, 2500);
+  setTimeout(() => { if (!started) { announceArrivals(); started = true; applyTheme(); amb.refresh(); advance(); } }, 2500);
+}
+
+/* =====================================================================
+   6b. TV AUTONOME — écran d'attente (?v=tv, adresse courte …/tv/)
+   ===================================================================== */
+function viewTv() {
+  document.title = 'Écran TV — ' + CONFIG.brand;
+  document.documentElement.dataset.design = 'tv';
+  document.body.style.background = '#050212';
+  $('#app').innerHTML = `<div class="tvwait">
+      <img src="${UDJ_LOGO}" alt="Universal DJ">
+      <h1>Écran de soirée</h1>
+      <div class="evtitle" id="tvt"></div>
+      <div class="ready"><span class="dot"></span>Écran TV prêt · en attente</div>
+      <p>Console DJ (Mac ou PC) → « Afficher sur la TV »</p></div>`;
+  displayChrome(() => { if (document.fullscreenElement) document.exitFullscreen?.(); else toast('Pour quitter : touche Retour de la télécommande'); });
+  keepAwake();
+  TV.beat(); setInterval(() => TV.beat(), TV_HEARTBEAT_MS);
+  const follow = async () => {
+    const st = await TV.read();
+    $('#tvt').textContent = st.title ? '✨ ' + st.title + ' ✨' : '';
+    if (st.screen === 'on' && st.event) location.replace(TV.screenUrl(st.event));
+  };
+  follow(); setInterval(follow, TV_POLL_MS);
 }
 
 /* =====================================================================
@@ -1499,7 +1850,7 @@ function viewScreen() {
    ===================================================================== */
 function viewGuest() {
   document.title = 'Partagez vos souvenirs ✨';
-  let view = 'home', files = [], defi = '', busy = false, lastSend = 0;
+  let view = 'home', files = [], defi = '', busy = false, lastSend = 0, merciMot = false;
   const me = () => lsGet('ecran:author', '');
   const liked = new Set((lsGet('ecran:liked:' + EVENT, '') || '').split(',').filter(Boolean));
   const pending = {}; let flushT = null;
@@ -1507,7 +1858,7 @@ function viewGuest() {
   function shell(inner) {
     const s = S();
     $('#app').innerHTML = `${DEMO ? '<div class="demo-banner">Mode démo</div>' : ''}${headerDeco()}
-      <div class="guest"><div class="g-hero"><div class="kicker">${esc(s.subtitle)}</div><div class="names">${namesHtml(s.names)}</div>${s.date ? `<div class="date">${esc(fmtDate(s.date))}</div>` : ''}</div>
+      <div class="guest"><div class="g-hero"><div class="kicker">${esc(s.subtitle)}</div><div class="names">${namesHtml(s.names)}</div>${eventTitle() ? `<div class="g-evt"><span class="evpill"><span class="evtitle">✨ ${esc(eventTitle())} ✨</span></span></div>` : ''}${s.date ? `<div class="date">${esc(fmtDate(s.date))}</div>` : ''}</div>
       <div id="pane">${inner}</div></div>
       ${s.reactions && view !== 'quiz' ? `<div class="reactbar"><span class="lbl">Réagissez en direct sur le grand écran</span>${REACTS.map(([f, e]) => `<button data-r="${f}" aria-label="${f}">${e}</button>`).join('')}</div>` : ''}`;
     $$('[data-r]').forEach(b => b.onclick = ev => react(b.dataset.r, b.textContent, ev));
@@ -1538,7 +1889,11 @@ function viewGuest() {
         ${me() ? '' : `<div class="field"><span>Votre prénom (facultatif)</span><input class="input" id="nm2" maxlength="40"></div>`}
         <button class="btn primary" style="width:100%;padding:16px;font-size:17px" id="send" disabled>Envoyer sur le grand écran ✨</button>
         <div id="st" style="text-align:center;color:var(--muted);margin-top:12px;font-size:14px"></div>`);
-      $('#file').onchange = e => { files = [...e.target.files].slice(0, 5); $('#thumbs').innerHTML = files.map(f => `<img src="${URL.createObjectURL(f)}" alt="">`).join(''); $('#send').disabled = !files.length; };
+      $('#file').onchange = e => {
+        files = [...e.target.files].slice(0, 5);
+        $('#thumbs').innerHTML = ''; files.forEach(f => { const im = new Image(); im.alt = ''; im.src = URL.createObjectURL(f); im.onload = () => URL.revokeObjectURL(im.src); $('#thumbs').appendChild(im); });
+        $('#send').disabled = !files.length;
+      };
       $('#send').onclick = sendPhotos;
     }
     if (view === 'mot') {
@@ -1560,38 +1915,45 @@ function viewGuest() {
     if (view === 'fil') renderFil();
     if (view === 'quiz') renderQuiz();
     if (view === 'merci') {
-      shell(`<div class="success"><div class="e">${defi === '💌' ? '💌' : '🎉'}</div><h2>Merci ${esc(me())} !</h2>
+      shell(`<div class="success"><div class="e">${merciMot ? '💌' : '🎉'}</div><h2>Merci ${esc(me())} !</h2>
         <p style="color:var(--muted)">${S().moderation ? 'Votre envoi apparaîtra sur le grand écran dès qu\'il sera validé.' : 'Regardez le grand écran, ça arrive !'}</p>
         <div class="row" style="justify-content:center;margin-top:18px"><button class="btn primary" data-go="photo">📸 Une autre photo</button><button class="btn" data-go="home">Accueil</button></div></div>`);
-      defi = ''; confetti();
+      defi = ''; merciMot = false; confetti();
     }
   }
 
   /* ----- quiz en direct sur le téléphone ----- */
   const quizLive = () => { const m = S().mode; return (m === 'quizq' && !!quizCur()) || m === 'quiz'; };
   const qaKey = (qid, i) => `ecran:qa:${EVENT}:${S().quizRun || 0}:${qid}:${i}`;
-  const allTeams = () => Object.values(cache.teams).filter(x => x.status !== 'del' && x.name);
   const myTeam = () => { const id = lsGet('ecran:team:' + EVENT, ''); const t = id && cache.teams[id]; return t && t.status !== 'del' && t.name ? t : null; };
-  let qTimer = null, qSig = '', lastMode = '', picking = false;
-  function settleOne(qid, i, good) {
-    const k = qaKey(qid, i), a = lsGet(k, ''), t = myTeam();
-    if (a === '' || good < 0 || lsGet(k + ':s', '') || !t) return;
-    lsSet(k + ':s', '1');
-    if (Number(a) === good) store.increment('teams', t.id, 'score', 1).catch(() => {});
+  let qSig = '', lastMode = '', picking = false;
+  /* Points du quiz : chaque bonne réponse part dans une file d'attente (localStorage). Si le réseau
+     coupe, l'envoi est retenté à la synchro suivante ; une réponse n'est comptée qu'une fois. */
+  const SCORE_Q = 'ecran:scoreq:' + EVENT;
+  const scoreQueue = () => parseJSON(lsGet(SCORE_Q, '[]'), []);
+  function queueScore(k, team, good) {
+    if (!team || good < 0 || lsGet(k + ':s', '')) return;
+    const q = scoreQueue(); if (q.some(x => x.k === k)) return;
+    q.push({ k, team: team.id, good }); lsSet(SCORE_Q, JSON.stringify(q)); flushScores();
   }
+  let flushing = false;
+  async function flushScores() {
+    if (flushing) return; flushing = true;
+    try {
+      for (const x of scoreQueue()) {
+        const ok = Number(lsGet(x.k, '-1')) === x.good;
+        try { if (ok) await store.increment('teams', x.team, 'score', 1); } catch (e) { break; }   // réseau : on réessaiera
+        lsSet(x.k + ':s', '1'); lsSet(SCORE_Q, JSON.stringify(scoreQueue().filter(y => y.k !== x.k)));
+      }
+    } finally { flushing = false; }
+  }
+  /* « Qui des deux ? » : la bonne réponse n'est connue qu'à la révélation (choisie par le DJ). */
   function settle() {
     const s = S(), c = quizCur();
-    let pend = null; try { pend = JSON.parse(lsGet('ecran:qpend:' + EVENT, 'null')); } catch (e) {}
-    if (pend && pend.run === (s.quizRun || 0) && !(c && c.quiz.id === pend.qid && c.i === pend.i && s.quizPhase !== 'a')) {
-      const q = allQuizzes().find(x => x.id === pend.qid);
-      if (q && !q.who && q.qs[pend.i]) settleOne(pend.qid, pend.i, q.qs[pend.i][2]);
-      if (!(c && c.quiz.id === pend.qid && c.i === pend.i)) lsSet('ecran:qpend:' + EVENT, 'null');
-    }
-    if (c && s.mode === 'quizq' && s.quizPhase === 'a') {
-      const good = c.quiz.who ? (s.quizPick === '' ? -1 : Number(s.quizPick)) : c.item[2];
-      if (c.quiz.who && good >= 0) lsSet(qaKey(c.quiz.id, c.i) + ':c', String(good));
-      settleOne(c.quiz.id, c.i, good);
-    }
+    if (!c || !c.quiz.who || s.mode !== 'quizq' || s.quizPhase !== 'a' || s.quizPick === '') return;
+    const k = qaKey(c.quiz.id, c.i), good = Number(s.quizPick);
+    lsSet(k + ':c', String(good));
+    queueScore(k, myTeam(), good);
   }
   function quizScore(quiz) {
     let ok = 0, done = 0; const s = S();
@@ -1604,7 +1966,7 @@ function viewGuest() {
     return { ok, done };
   }
   function teamPicker() {
-    const t = allTeams().filter(x => !x.solo);
+    const t = liveTeams().filter(x => !x.solo);
     return `<div class="card" style="margin-bottom:14px"><h3 class="sec" style="margin-top:0">🎤 Rejoignez le quiz</h3>
       <p class="sub" style="margin:0 0 10px">${t.length ? 'Choisissez votre équipe : chaque bonne réponse lui rapporte 1 point.' : 'Jouez en solo : chaque bonne réponse vous rapporte 1 point.'}</p>
       <div class="gq-team">${t.map(x => `<button data-tm="${x.id}">👥 <b>${esc(x.name)}</b></button>`).join('')}
@@ -1623,7 +1985,7 @@ function viewGuest() {
   }
   function renderQuiz() {
     const s = S(), team = myTeam();
-    const meLine = team ? `<div class="gq-me"><span>Vous jouez pour <b>${esc(team.name)}</b> · ${team.score || 0} pt${(team.score || 0) > 1 ? 's' : ''}</span><button id="chg">changer</button></div>` : '';
+    const meLine = team ? `<div class="gq-me"><span>Vous jouez pour <b>${esc(team.name)}</b> · ${team.score} pt${team.score > 1 ? 's' : ''}</span><button id="chg">changer</button></div>` : '';
     const bindMe = () => { if ($('#chg')) $('#chg').onclick = () => { picking = true; renderQuiz(); }; };
     if (!team || picking) {
       shell(`<button class="back" data-go="home">← Accueil</button><div class="gq">${teamPicker()}
@@ -1631,12 +1993,10 @@ function viewGuest() {
       bindPicker(); return;
     }
     if (s.mode === 'quiz') {
-      const t = allTeams().sort((a, b) => (b.score || 0) - (a.score || 0));
-      const best = t.length && (t[0].score || 0) > 0 ? t.filter(x => (x.score || 0) === (t[0].score || 0)) : [];
-      const iWin = best.some(x => x.id === team.id);
+      const { list: t, best } = ranking(), iWin = best.some(x => x.id === team.id);
       shell(`<button class="back" data-go="home">← Accueil</button><div class="gq">${meLine}<h2 class="hand" style="font-size:34px;margin:0 0 6px;color:var(--accent);text-align:center">🏆 Le classement</h2>
         ${best.length ? `<div class="gq-win">${iWin ? '🎉 Vous avez gagné ! 🎉' : (best.length > 1 ? 'Ex æquo : ' : 'Victoire : ') + best.map(x => esc(x.name)).join(' & ')}</div>` : ''}
-        ${t.length ? t.slice(0, 20).map((x, i) => `<div class="gq-rank" ${x.id === team.id ? 'style="border-color:var(--accent);border-width:2px"' : ''}><i>${['🥇', '🥈', '🥉'][i] || i + 1}</i><b>${esc(x.name)}</b><em>${x.score || 0}</em></div>`).join('') : '<div class="empty">Le classement arrive…</div>'}</div>`);
+        ${t.length ? t.slice(0, 20).map((x, i) => `<div class="gq-rank" ${x.id === team.id ? 'style="border-color:var(--accent);border-width:2px"' : ''}><i>${['🥇', '🥈', '🥉'][i] || i + 1}</i><b>${esc(x.name)}</b><em>${x.score}</em></div>`).join('') : '<div class="empty">Le classement arrive…</div>'}</div>`);
       bindMe(); if (iWin && !renderQuiz.cf) { renderQuiz.cf = 1; confetti(); }
       return;
     }
@@ -1668,8 +2028,8 @@ function viewGuest() {
       if (b.disabled) return;
       if (!who && lsGet(qaKey(quiz.id, i), '') !== '') return; // une seule réponse par question
       if (navigator.vibrate) navigator.vibrate(15);
-      lsSet(qaKey(quiz.id, i), b.dataset.qa); lsSet('ecran:qpend:' + EVENT, JSON.stringify({ run: s.quizRun || 0, qid: quiz.id, i }));
-      if (!who) settleOne(quiz.id, i, item[2]); // point envoyé tout de suite (même si le téléphone se met en veille ensuite)
+      lsSet(qaKey(quiz.id, i), b.dataset.qa);
+      if (!who) queueScore(qaKey(quiz.id, i), myTeam(), item[2]);   // point envoyé tout de suite (même si le téléphone se met ensuite en veille)
       renderQuiz();
     });
     qTick();
@@ -1698,12 +2058,11 @@ function viewGuest() {
     if (changed.includes('settings')) applyTheme();
     settle();
     const isLive = quizLive();
-    const sig = [s.mode, s.quizId, s.quizQ, s.quizPhase, s.quizPick, s.quizAt, s.quizSec, s.quizRun].join('|');
-    const sigChanged = sig !== qSig; qSig = sig;
+    const sig = quizSig(), sigChanged = sig !== qSig; qSig = sig;
     const started = isLive && lastMode !== '' && lastMode !== s.mode;
     lastMode = s.mode;
     if (view === 'quiz') {
-      if (picking || !myTeam()) { if (changed.includes('teams') && !document.activeElement?.matches('input')) renderQuiz(); return; }
+      if (picking || !myTeam()) { if (changed.includes('teams') && !isActiveInput()) renderQuiz(); return; }
       if (sigChanged || changed.includes('teams')) renderQuiz();
       return;
     }
@@ -1711,48 +2070,62 @@ function viewGuest() {
       if (started && ['home', 'fil', 'merci', 'defis'].includes(view)) { quizBanner(false); go('quiz'); return; }
       quizBanner(true);
     } else quizBanner(false);
-    if (view === 'home' && changed.includes('settings')) render();
+    if (view === 'home' && changed.includes('settings') && !isActiveInput()) render();
   }
   setInterval(() => { try { qTick(); } catch (e) {} }, 250);
   setInterval(() => { try { if (quizSig() !== qSig) onLive(['tick']); } catch (e) { showError('Quiz : ' + e.message); qSig = ''; } }, 400);
+  /* Synchro du téléphone : rapide pendant le quiz, plus lente sinon (quota de lectures gratuit).
+     Les équipes ne sont relues que si l'écran les affiche, sinon toutes les 15 s. */
+  let lastTeamsSync = 0;
   function liveLoop() {
     let busy = false;
     const run = async () => {
       if (busy || document.hidden) return; busy = true;
-      try { const ch = await syncOnce(['settings', 'teams']); if (ch.length) onLive(ch); } catch (e) { console.warn(e); }
+      try {
+        const s = S(), needTeams = view === 'quiz' && (s.mode === 'quiz' || picking || !myTeam()) || Date.now() - lastTeamsSync > 15000;
+        const ch = await syncOnce(needTeams ? ['settings', 'teams'] : ['settings']);
+        if (needTeams) lastTeamsSync = Date.now();
+        if (ch.length) onLive(ch);
+        await flushScores();
+      } catch (e) { console.warn(e); }
       busy = false;
     };
-    (async function loop() { await run(); setTimeout(loop, S().mode === 'quizq' || S().mode === 'quiz' || view === 'quiz' ? 2500 : 6000); })();
+    const quizy = () => { const m = S().mode; return m === 'quizq' || m === 'quiz' || view === 'quiz'; };
+    (async function loop() { await run(); setTimeout(loop, quizy() ? 2500 : 8000); })();
     document.addEventListener('visibilitychange', () => { if (!document.hidden) run(); });
     if (DEMO) window.addEventListener('storage', run);
   }
   function takeName() { const n = $('#nm2'); if (n && n.value.trim()) lsSet('ecran:author', n.value.trim().slice(0, 40)); return me(); }
   async function sendPhotos() {
-    if (busy || !files.length) return; busy = true; $('#send').disabled = true;
+    if (busy || !files.length) return;
+    const st = $('#st'), btn = $('#send'), list = files, myDefi = defi;   // références locales : la page peut changer pendant l'envoi
     const author = takeName(), status = S().moderation ? 'pending' : 'ok', cap = ($('#cap').value || '').trim().slice(0, 60);
+    busy = true; btn.disabled = true;
     try {
-      for (let i = 0; i < files.length; i++) {
-        $('#st').textContent = `Envoi ${i + 1} / ${files.length}…`;
-        const { data, thumb, ratio } = await compressImage(files[i]), id = uid();
+      for (let i = 0; i < list.length; i++) {
+        st.textContent = `Envoi ${i + 1} / ${list.length}…`;
+        const { data, thumb, ratio } = await compressImage(list[i]), id = uid();
         await store.write('photoData', id, { data }, false, false);
-        await store.write('photos', id, { ts: Date.now(), author, caption: cap, defi: defi || '', thumb, ratio: Math.round(ratio * 1000) / 1000, likes: 0, status });
+        await store.write('photos', id, { ts: Date.now(), author, caption: cap, defi: myDefi || '', thumb, ratio: Math.round(ratio * 1000) / 1000, likes: 0, status });
       }
-      files = []; busy = false; go('merci');
-    } catch (e) { $('#st').textContent = 'Oups, envoi impossible : ' + e.message; $('#send').disabled = false; busy = false; }
+      files = []; if (st.isConnected) go('merci');
+    } catch (e) { st.textContent = 'Oups, envoi impossible : ' + e.message; btn.disabled = false; }
+    finally { busy = false; }
   }
   async function sendMot() {
-    const text = ($('#txt').value || '').trim(); if (!text) return;
-    if (Date.now() - lastSend < 5000) { $('#st').textContent = 'Un petit instant…'; return; }
-    lastSend = Date.now(); $('#send').disabled = true;
-    try { await store.write('messages', uid(), { ts: Date.now(), author: takeName(), text: text.slice(0, 240), status: S().moderation ? 'pending' : 'ok' }); defi = '💌'; go('merci'); }
-    catch (e) { $('#st').textContent = 'Oups : ' + e.message; $('#send').disabled = false; }
+    const st = $('#st'), btn = $('#send'), text = ($('#txt').value || '').trim(); if (!text) return;
+    if (Date.now() - lastSend < 5000) { st.textContent = 'Un petit instant…'; return; }
+    lastSend = Date.now(); btn.disabled = true;
+    try {
+      await store.write('messages', uid(), { ts: Date.now(), author: takeName(), text: text.slice(0, 240), status: S().moderation ? 'pending' : 'ok' });
+      if (st.isConnected) { merciMot = true; go('merci'); }
+    } catch (e) { st.textContent = 'Oups : ' + e.message; btn.disabled = false; }
   }
   let filLoaded = false, filTimer = null;
   async function loadFil(initial) {
     try {
       if (initial && !filLoaded) {
-        const docs = await store.recent('photos', 90);
-        docs.forEach(d => { cache.photos[d.id] = d; if ((d.mt || 0) > (lastMt.photos || 0)) lastMt.photos = d.mt; });
+        storeDocs('photos', await store.recent('photos', 90));
         lastRev.photos = (await store.getRev()).photos || 0; filLoaded = true;
       } else await syncOnce(['photos']);
     } catch (e) { showError(e.message); }
@@ -1764,18 +2137,14 @@ function viewGuest() {
   }
   function drawFil() {
     const box = $('#fil'); if (!box) return; const ph = live('photos').reverse();
-    box.innerHTML = ph.length ? ph.map(p => `<button data-p="${p.id}" style="background-image:url('${p.thumb || ''}')">${p.likes ? `<i>❤️ ${p.likes}</i>` : ''}</button>`).join('') : '<div class="empty" style="grid-column:1/-1">Pas encore de photo… soyez le premier ! 📸</div>';
-    $$('[data-p]', box).forEach(b => b.onclick = () => lightbox(b.dataset.p));
-  }
-  async function lightbox(id) {
-    const p = cache.photos[id]; if (!p) return;
-    const lb = document.createElement('div'); lb.className = 'lb';
-    lb.innerHTML = `<img src="${p.thumb}" alt=""><div class="meta">${esc(p.caption || '')} ${p.author ? '— ' + esc(p.author) : ''}</div>
-      <div class="row"><button class="btn primary" id="lk">${liked.has(id) ? '❤️ Aimée' : '🤍 J\'aime'}</button><a class="btn" id="dl" download="souvenir-${id}.jpg">⬇ Enregistrer</a><button class="btn" id="cl">Fermer</button></div>`;
-    document.body.appendChild(lb);
-    lb.onclick = e => { if (e.target === lb) lb.remove(); }; $('#cl', lb).onclick = () => lb.remove();
-    $('#lk', lb).onclick = async () => { if (liked.has(id)) return; liked.add(id); lsSet('ecran:liked:' + EVENT, [...liked].join(',')); $('#lk', lb).textContent = '❤️ Aimée'; p.likes = (p.likes || 0) + 1; drawFil(); try { await store.increment('photos', id, 'likes', 1); } catch (e) {} };
-    const full = await photoSrc(id); if (full && document.body.contains(lb)) { $('img', lb).src = full; $('#dl', lb).href = full; } else $('#dl', lb).href = p.thumb;
+    box.innerHTML = ph.length ? ph.map(p => `<button data-p="${p.id}" style="background-image:url('${p.thumb}')">${p.likes ? `<i>❤️ ${p.likes}</i>` : ''}</button>`).join('') : '<div class="empty" style="grid-column:1/-1">Pas encore de photo… soyez le premier ! 📸</div>';
+    $$('[data-p]', box).forEach(b => b.onclick = () => {
+      const p = cache.photos[b.dataset.p]; if (!p) return;
+      openLightbox(p, { like: { liked: liked.has(p.id), onLike: () => {
+        liked.add(p.id); lsSet('ecran:liked:' + EVENT, [...liked].join(',')); p.likes++; drawFil();
+        store.increment('photos', p.id, 'likes', 1).catch(() => {});
+      } } });
+    });
   }
   function react(f, e, ev) {
     if (navigator.vibrate) navigator.vibrate(12);
@@ -1785,14 +2154,9 @@ function viewGuest() {
     pending[f] = Math.min(10, (pending[f] || 0) + 1); clearTimeout(flushT); flushT = setTimeout(flush, 1500);
   }
   async function flush() { for (const [f, n] of Object.entries(pending)) { if (!n) continue; pending[f] = 0; try { await store.increment('meta', 'reactions', f, n); } catch (e) {} } }
-  function confetti() {
-    const cols = ['var(--accent)', 'var(--accent2)', '#e06a6a', '#ffd8a0', '#8fc7a8', '#f4a3b4'];
-    for (let i = 0; i < 70; i++) { const c = document.createElement('div'); c.className = 'confetti'; c.style.left = rnd(0, 100) + 'vw'; c.style.background = cols[i % cols.length];
-      c.style.animationDuration = rnd(1.8, 3.4) + 's'; c.style.animationDelay = rnd(0, .5) + 's'; c.style.borderRadius = i % 3 ? '2px' : '50%'; document.body.appendChild(c); setTimeout(() => c.remove(), 4200); }
-  }
   applyTheme(); render();
   syncOnce(['settings', 'teams']).then(() => {
-    applyTheme(); const s = S(); lastMode = s.mode; qSig = [s.mode, s.quizId, s.quizQ, s.quizPhase, s.quizPick, s.quizAt, s.quizSec, s.quizRun].join('|'); settle();
+    applyTheme(); lastMode = S().mode; qSig = quizSig(); lastTeamsSync = Date.now(); settle(); flushScores();
     if (quizLive()) go('quiz'); else if (view === 'home') render();
     liveLoop();
   }).catch(e => { showError(e.message); liveLoop(); });
@@ -1802,33 +2166,6 @@ function viewGuest() {
 /* =====================================================================
    7b. ESPACE MARIÉS (?v=maries&e=…) — protégé par un code choisi par le DJ
    ===================================================================== */
-function crc32(buf) {
-  let t = crc32.t; if (!t) { t = crc32.t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } }
-  let c = 0xFFFFFFFF; for (let i = 0; i < buf.length; i++) c = t[(c ^ buf[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0;
-}
-function makeZip(files) {
-  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
-  for (const f of files) {
-    const nm = enc.encode(f.name), crc = crc32(f.data), sz = f.data.length;
-    const h = new DataView(new ArrayBuffer(30));
-    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(12, 0x21, true);
-    h.setUint32(14, crc, true); h.setUint32(18, sz, true); h.setUint32(22, sz, true); h.setUint16(26, nm.length, true);
-    parts.push(h.buffer, nm, f.data);
-    const c = new DataView(new ArrayBuffer(46));
-    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(14, 0x21, true);
-    c.setUint32(16, crc, true); c.setUint32(20, sz, true); c.setUint32(24, sz, true); c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
-    central.push(c.buffer, nm); off += 30 + nm.length + sz;
-  }
-  const cs = central.reduce((a, b) => a + b.byteLength, 0), e = new DataView(new ArrayBuffer(22));
-  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
-  return new Blob([...parts, ...central, e.buffer], { type: 'application/zip' });
-}
-function downloadBlob(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); }
-function dzPreview(k) {
-  const d = DESIGNS[k], v = Object.values(d.palettes)[0].v;
-  const deco = { gold: '✦ ◆ ✦', garland: '💡💡💡', leaves: '🌿 🍃 🌿', confetti: '🎉 ✨ 🎈', disco: '🪩 ✨' }[d.amb];
-  return `<div class="pv" style="background:radial-gradient(120% 90% at 50% 0%,${v.bg1},${v.bg2});color:${v.accent}"><span style="font-size:15px;position:absolute;top:8px;letter-spacing:.2em">${deco}</span><span style="font-family:${d.fonts.d};color:${v.ink};font-size:26px">Julie <span style="font-family:${d.fonts.s};color:${v.accent}">&amp;</span> Tom</span></div>`;
-}
 const MUSIC_FIELDS = [['entree', '🚪 Entrée des mariés', 'Le morceau sur lequel vous entrez dans la salle'], ['danse', '💃 Première danse', 'Titre et artiste (version précise si besoin)'],
   ['gateau', '🎂 Arrivée du gâteau', 'Facultatif'], ['must', '⭐ Incontournables', 'Les morceaux à passer absolument, un par ligne'],
   ['non', '🚫 À ne jamais passer', 'Un par ligne'], ['notes', '📝 Autres souhaits', 'Styles préférés, moments clés, surprises prévues…']];
@@ -1838,26 +2175,22 @@ function viewCouple() {
   let tab = lsGet('ecran:ctab-m', 'accueil'), draft = null, photosLoaded = false;
   const okKey = 'ecran:cpl:' + EVENT;
   const unlocked = () => { const c = String((cache.settings.main || {}).coupleCode || ''); try { const v = sessionStorage.getItem(okKey); return !!v && (v === c || v === 'dj:' + CONFIG.pinConsole); } catch (e) { return false; } };
-  const save = async (patch, msg = 'Enregistré ✓') => { try { await saveSettings(patch); await syncOnce(['settings']); toast(msg); render(); } catch (e) { showError(e.message); } };
+  /* Enregistre dans les réglages ; renvoie true si c'est passé (le formulaire n'est vidé qu'en cas de succès). */
+  const save = async (patch, msg = 'Enregistré ✓') => {
+    try { await saveSettings(patch); await syncOnce(['settings']); toast(msg); render(); return true; }
+    catch (e) { showError(e.message); return false; }
+  };
 
   function login() {
     const code = String((cache.settings.main || {}).coupleCode || '');
-    $('#app').innerHTML = `${headerDeco()}<div class="pin"><div class="kicker">Espace mariés</div><h2 class="serif" style="font-weight:500;font-size:34px;margin:8px 0 6px">${namesHtml(S().names) || 'Bienvenue'}</h2>
-      ${code ? `<p style="color:var(--muted);margin:0 0 16px">Entrez le code que votre DJ vous a envoyé.</p>
-      <div class="pinwrap"><input class="input masked" id="pin" type="text" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" style="text-align:center;font-size:26px;letter-spacing:.3em;padding-right:44px">
-      <button class="eye" id="eye" type="button" title="Afficher le code">👁️</button></div>
-      <button class="btn primary" id="go" style="width:100%;margin-top:12px">Entrer</button><p id="bad" style="color:#d9605a;min-height:22px"></p>`
-      : `<p style="color:var(--muted)">Votre espace n'est pas encore ouvert. Votre DJ vous enverra un lien et un code.</p>`}</div>`;
-    if (!code) return;
-    const tryIt = () => {
-      const v = $('#pin').value.trim(), n = normPin(v);
-      let ok = null; if (n === normPin(code) || v === code) ok = code; else if (CONFIG.pinConsole && (n === normPin(CONFIG.pinConsole) || v === CONFIG.pinConsole)) ok = 'dj:' + CONFIG.pinConsole;
-      if (ok) { try { sessionStorage.setItem(okKey, ok); } catch (e) {} render(); } else $('#bad').textContent = 'Code incorrect — vérifiez avec l\'œil 👁️';
-    };
-    $('#go').onclick = tryIt; $('#pin').onkeydown = e => { if (e.key === 'Enter') tryIt(); };
-    $('#pin').oninput = () => { $('#bad').textContent = ''; };
-    $('#eye').onclick = () => $('#pin').classList.toggle('masked');
-    $('#pin').focus();
+    if (!code) {
+      $('#app').innerHTML = `${headerDeco()}<div class="pin"><div class="kicker">Espace mariés</div><h2 class="serif" style="font-weight:500;font-size:34px;margin:8px 0 6px">${namesHtml(S().names)}</h2>
+        <p style="color:var(--muted)">Votre espace n'est pas encore ouvert. Votre DJ vous enverra un lien et un code.</p></div>`;
+      return;
+    }
+    pinScreen({ kicker: 'Espace mariés', title: namesHtml(S().names), sub: 'Entrez le code que votre DJ vous a envoyé.',
+      check: v => pinMatches(v, code) ? code : pinMatches(v, CONFIG.pinConsole) ? 'dj:' + CONFIG.pinConsole : null,
+      onOk: ok => { try { sessionStorage.setItem(okKey, ok); } catch (e) {} render(); } });
   }
 
   function render() {
@@ -1865,7 +2198,7 @@ function viewCouple() {
     if (!unlocked()) return login();
     const s = S();
     $('#app').innerHTML = `${headerDeco()}<div class="console">
-      <div class="c-top"><div><span class="kicker">Espace mariés · ${esc(CONFIG.brand)}</span><h1>${namesHtml(s.names) || 'Notre mariage'}</h1></div>
+      <div class="c-top"><div><span class="kicker">Espace mariés · ${esc(CONFIG.brand)}</span><h1>${namesHtml(s.names)}</h1></div>
         <div class="row"><a class="btn" href="${viewUrl('invite')}" target="_blank" rel="noopener">📱 Voir la page des invités</a></div></div>
       <div class="c-tabs">${[['accueil', '🏠 Accueil'], ['style', '🎨 Notre style'], ['defis', '🎯 Défis photo'], ['quiz', '💑 Notre quiz'], ['musique', '🎵 Musiques'], ['souvenirs', '📸 Souvenirs']]
         .map(([k, l]) => `<button class="btn sm ${tab === k ? 'on' : ''}" data-t="${k}">${l}</button>`).join('')}</div>
@@ -1887,7 +2220,7 @@ function viewCouple() {
       ['musique', nm > 0, '🎵 Nos musiques', nm ? `${nm} rubrique(s) remplie(s)` : 'Entrée, première danse, incontournables…'],
       ['souvenirs', false, '📸 Nos souvenirs', 'Après la fête : toutes les photos et le livre d\'or']];
     $('#body').innerHTML = `<div class="card" style="margin-bottom:16px"><div class="cpl-hero"><div class="kicker">${esc(s.subtitle || '')}</div>
-        <div class="names" style="font-family:var(--fd);font-size:40px;line-height:1.1">${namesHtml(s.names) || 'Notre mariage'}</div>
+        <div class="names" style="font-family:var(--fd);font-size:40px;line-height:1.1">${namesHtml(s.names)}</div>
         ${s.date ? `<div style="color:var(--muted);margin-top:6px">${esc(fmtDate(s.date))}</div>` : ''}${cd ? `<div class="cd">${cd}</div>` : ''}</div></div>
       <div class="card"><h3 class="sec" style="margin-top:0">Préparons votre soirée ensemble</h3><p class="sub">Tout ce que vous remplissez ici apparaît directement sur le grand écran et sur les téléphones des invités le jour J. Vous pouvez modifier jusqu'à la dernière minute.</p>
         <div class="steps">${steps.map(([k, done, t, d]) => `<button data-go="${k}" class="${done ? 'done' : ''}"><span class="ck">${done ? '✓' : ''}</span><span><b>${t}</b><small>${d}</small></span><span class="go">→</span></button>`).join('')}</div></div>`;
@@ -1895,31 +2228,22 @@ function viewCouple() {
   }
 
   function tStyle() {
-    const s = S(), dk = designKey(), pk = paletteKey(), d = DESIGNS[dk];
-    if (!document.getElementById('allfonts')) { const l = document.createElement('link'); l.id = 'allfonts'; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=' + Object.values(DESIGNS).map(x => x.gf).join('&family=') + '&display=swap'; document.head.appendChild(l); }
+    const s = S(); loadAllFonts();
     $('#body').innerHTML = `<div class="card" style="margin-bottom:16px"><h3 class="sec" style="margin-top:0">💍 Vous deux</h3><div class="grid2">
         <div class="field"><span>Vos prénoms (ex. Julie &amp; Thomas)</span><input class="input" id="f-names" maxlength="60" value="${esc(s.names)}"></div>
         <div class="field"><span>Date du mariage</span><input class="input" type="date" id="f-date" value="${esc(s.date)}"></div>
         <div class="field" style="grid-column:1/-1"><span>Phrase d'accueil (en haut de l'écran et des téléphones)</span><input class="input" id="f-sub" maxlength="80" value="${esc(s.subtitle)}"></div></div>
         <button class="btn primary" id="save">Enregistrer</button></div>
-      <div class="card" style="margin-bottom:16px"><h3 class="sec" style="margin-top:0">🎨 Le style de votre écran</h3><p class="sub">Touchez un style : il s'applique tout de suite au grand écran et aux téléphones des invités.</p>
-        <div class="designs">${Object.entries(DESIGNS).map(([k, x]) => `<button data-dz="${k}" class="${k === dk ? 'on' : ''}">${dzPreview(k)}<div class="tx"><b>${x.name}</b><small><b style="display:inline;font-size:12px;color:var(--accent)">${x.mood}</b> — ${x.desc}</small></div></button>`).join('')}</div></div>
-      <div class="card"><h3 class="sec" style="margin-top:0">Couleurs « ${d.name} »</h3>
-        <div class="palettes">${Object.entries(d.palettes).map(([k, p]) => `<button data-pal="${k}" class="${k === pk ? 'on' : ''}"><i style="background:linear-gradient(135deg,${p.v.bg1},${p.v.bg2});--dot:${p.v.accent}"></i>${p.name}</button>`).join('')}</div>
-        <div class="row" style="margin-top:14px"><label class="field" style="margin:0;flex:0 0 auto"><span>Votre couleur (facultatif)</span><input type="color" id="acc" value="${esc(s.accent || d.palettes[pk].v.accent)}" style="height:46px;width:90px;padding:4px"></label>
-          <button class="btn sm" id="accR">Couleur de la palette</button></div></div>`;
+      ${stylePickerHtml('🎨 Le style de votre écran')}`;
     $('#save').onclick = () => save({ names: $('#f-names').value.trim().slice(0, 60), date: $('#f-date').value, subtitle: $('#f-sub').value.trim().slice(0, 80) });
-    $$('[data-dz]').forEach(b => b.onclick = () => save({ design: b.dataset.dz, palette: Object.keys(DESIGNS[b.dataset.dz].palettes)[0], accent: '' }, 'Style « ' + DESIGNS[b.dataset.dz].name + ' » choisi ✨'));
-    $$('[data-pal]').forEach(b => b.onclick = () => save({ design: dk, palette: b.dataset.pal, accent: '' }));
-    $('#acc').onchange = e => save({ accent: e.target.value });
-    $('#accR').onclick = () => save({ accent: '' });
+    bindStylePicker(save);
   }
 
   function tDefis() {
     $('#body').innerHTML = `<div class="card"><h3 class="sec" style="margin-top:0">🎯 Vos défis photo</h3><p class="sub">Les invités les voient sur leur téléphone (« Défis photo ») et le grand écran les lance pendant la soirée. Un défi par ligne, 12 maximum.<br>Idées : « Une photo avec le plus vieux et le plus jeune invité », « Recréez notre photo de fiançailles », « Le meilleur pas de danse de la soirée »…</p>
       <textarea class="input" id="ch" rows="10" style="width:100%;font-size:16px;line-height:1.5">${esc(S().challenges)}</textarea>
       <div class="row" style="margin-top:12px"><button class="btn primary" id="save">Enregistrer</button><button class="btn" id="reset">Reprendre les idées de départ</button></div></div>`;
-    $('#save').onclick = () => save({ challenges: $('#ch').value.split('\n').map(x => x.trim()).filter(Boolean).slice(0, 12).map(x => x.slice(0, 90)).join('\n') });
+    $('#save').onclick = () => save({ challenges: normChallenges($('#ch').value) });
     $('#reset').onclick = () => { $('#ch').value = DEFAULTS.challenges; };
   }
 
@@ -1949,7 +2273,7 @@ function viewCouple() {
       const bad = draft.qs.findIndex(q => q.q.trim() && (!(q.a[q.c] || '').trim() || q.a.filter(a => a.trim()).length < 2));
       if (bad >= 0) { toast(`Question ${bad + 1} : il faut au moins 2 réponses, et la bonne réponse cochée doit être remplie.`, 4500); return; }
       const out = { who: draft.who.map(w => w.trim()).filter(Boolean), qs: draft.qs.filter(q => q.q.trim()).map(q => ({ q: q.q.trim(), a: q.a.map(a => a.trim()), c: q.c, i: q.i.trim() })) };
-      const keep = draft; save({ customQuiz: JSON.stringify(out) }, 'Quiz enregistré 💑').then(() => { draft = null; });
+      save({ customQuiz: JSON.stringify(out) }, 'Quiz enregistré 💑').then(ok => { if (ok) draft = null; });
     };
   }
 
@@ -1965,24 +2289,18 @@ function viewCouple() {
     $('#body').innerHTML = `<div class="card"><div class="empty">Chargement des souvenirs…</div></div>`;
     try { if (!photosLoaded) { await syncOnce(['photos', 'messages', 'teams']); photosLoaded = true; } } catch (e) { showError(e.message); }
     if (tab !== 'souvenirs') return;
-    const ph = live('photos').reverse(), ms = live('messages'), tm = Object.values(cache.teams).filter(x => x.status !== 'del' && x.name).sort((a, b) => (b.score || 0) - (a.score || 0));
-    $('#body').innerHTML = `<div class="stat" style="margin-bottom:16px"><div><b>${ph.length}</b><small>photos</small></div><div><b>${ms.length}</b><small>mots doux</small></div><div><b>${ph.reduce((a, p) => a + (p.likes || 0), 0)}</b><small>j'aime</small></div><div><b>${new Set(ph.map(p => p.author).filter(Boolean)).size}</b><small>photographes</small></div></div>
+    const ph = live('photos').reverse(), ms = live('messages'), tm = ranking().list;
+    $('#body').innerHTML = `<div class="stat" style="margin-bottom:16px"><div><b>${ph.length}</b><small>photos</small></div><div><b>${ms.length}</b><small>mots doux</small></div><div><b>${ph.reduce((a, p) => a + p.likes, 0)}</b><small>j'aime</small></div><div><b>${new Set(ph.map(p => p.author).filter(Boolean)).size}</b><small>photographes</small></div></div>
       <div class="card" style="margin-bottom:16px"><h3 class="sec" style="margin-top:0">📸 Toutes vos photos</h3>
         <p class="sub">Téléchargez-les toutes d'un coup, en pleine qualité, de préférence depuis un ordinateur. ⚠️ Les photos restent en ligne quelques jours seulement : votre DJ les efface ensuite du serveur.</p>
         <div class="row" style="margin-bottom:14px"><button class="btn primary" id="zip" ${ph.length ? '' : 'disabled'}>⬇️ Télécharger toutes les photos (.zip)</button><span class="sub" id="zst" style="margin:0"></span></div>
-        <div class="gal">${ph.length ? ph.map(p => `<button data-p="${p.id}" style="background-image:url('${p.thumb || ''}')" title="${esc(p.author || '')}"></button>`).join('') : '<div class="empty" style="grid-column:1/-1">Les photos de vos invités apparaîtront ici pendant et après la soirée.</div>'}</div></div>
+        <div class="gal">${ph.length ? ph.map(p => `<button data-p="${p.id}" style="background-image:url('${p.thumb}')" title="${esc(p.author || '')}"></button>`).join('') : '<div class="empty" style="grid-column:1/-1">Les photos de vos invités apparaîtront ici pendant et après la soirée.</div>'}</div></div>
       <div class="card" style="margin-bottom:16px"><h3 class="sec" style="margin-top:0">💌 Votre livre d'or</h3>
         <div class="row" style="margin-bottom:12px"><button class="btn" id="print" ${ms.length ? '' : 'disabled'}>🖨️ Imprimer / enregistrer en PDF</button><button class="btn" id="txt" ${ms.length ? '' : 'disabled'}>⬇️ Télécharger en texte</button></div>
         <div class="livre">${ms.length ? ms.map(m => `<div>« ${esc(m.text)} »<small>— ${esc(m.author || 'Anonyme')}</small></div>`).join('') : '<div class="empty">Les mots doux de vos invités apparaîtront ici.</div>'}</div></div>
-      ${tm.length ? `<div class="card"><h3 class="sec" style="margin-top:0">🏆 Le quiz de la soirée</h3>${tm.slice(0, 15).map((x, i) => `<div class="gq-rank"><i>${['🥇', '🥈', '🥉'][i] || i + 1}</i><b>${esc(x.name)}</b><em>${x.score || 0}</em></div>`).join('')}</div>` : ''}`;
-    $$('[data-p]').forEach(b => b.onclick = async () => {
-      const p = cache.photos[b.dataset.p]; const lb = document.createElement('div'); lb.className = 'lb';
-      lb.innerHTML = `<img src="${p.thumb}" alt=""><div class="meta">${esc(p.caption || '')} ${p.author ? '— ' + esc(p.author) : ''}</div><div class="row"><a class="btn primary" id="dl" download="${esc(Saver.fileName(p))}">⬇ Enregistrer</a><button class="btn" id="cl">Fermer</button></div>`;
-      document.body.appendChild(lb); lb.onclick = e => { if (e.target === lb) lb.remove(); }; $('#cl', lb).onclick = () => lb.remove();
-      const full = await photoSrc(p.id); if (full && document.body.contains(lb)) { $('img', lb).src = full; $('#dl', lb).href = full; } else $('#dl', lb).href = p.thumb;
-    });
-    const livreTxt = () => ms.map(m => `« ${m.text} »\n— ${m.author || 'Anonyme'}\n`).join('\n');
-    if ($('#txt')) $('#txt').onclick = () => downloadBlob(new Blob([livreTxt()], { type: 'text/plain;charset=utf-8' }), `livre-d-or-${EVENT}.txt`);
+      ${tm.length ? `<div class="card"><h3 class="sec" style="margin-top:0">🏆 Le quiz de la soirée</h3>${tm.slice(0, 15).map((x, i) => `<div class="gq-rank"><i>${['🥇', '🥈', '🥉'][i] || i + 1}</i><b>${esc(x.name)}</b><em>${x.score}</em></div>`).join('')}</div>` : ''}`;
+    $$('[data-p]').forEach(b => b.onclick = () => { const p = cache.photos[b.dataset.p]; if (p) openLightbox(p); });
+    if ($('#txt')) $('#txt').onclick = () => downloadBlob(new Blob([guestbookText(ms)], { type: 'text/plain;charset=utf-8' }), `livre-d-or-${EVENT}.txt`);
     if ($('#print')) $('#print').onclick = () => {
       const s = S(), w = window.open('', '_blank'); if (!w) { toast('Autorisez les fenêtres pour imprimer'); return; }
       w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Livre d'or — ${esc(s.names)}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${design().gf}&display=swap">
@@ -1993,16 +2311,12 @@ function viewCouple() {
       w.document.close();
     };
     if ($('#zip')) $('#zip').onclick = async () => {
-      const btn = $('#zip'), st = $('#zst'); btn.disabled = true; const files = [], enc = new TextEncoder(); let fail = 0;
-      for (let i = 0; i < ph.length; i++) {
-        st.textContent = `Préparation ${i + 1} / ${ph.length}…`;
-        try { const d = await store.get('photoData', ph[i].id); if (!d || !d.data) { fail++; continue; } const buf = new Uint8Array(await (await fetch(d.data)).arrayBuffer()); files.push({ name: Saver.fileName(ph[i], i + 1), data: buf }); }
-        catch (e) { fail++; }
-      }
-      if (ms.length) files.push({ name: 'livre-d-or.txt', data: enc.encode(livreTxt()) });
-      st.textContent = 'Création du fichier…';
-      downloadBlob(makeZip(files), `photos-${EVENT}.zip`);
-      st.textContent = `✓ ${files.length - (ms.length ? 1 : 0)} photo(s) téléchargée(s)${fail ? ` · ${fail} introuvable(s)` : ''}`; btn.disabled = false;
+      const btn = $('#zip'), st = $('#zst'); btn.disabled = true;
+      try {
+        const r = await downloadAllZip((i, n) => { st.textContent = `Préparation ${i} / ${n}…`; });
+        st.textContent = `✓ ${r.photos} photo(s) téléchargée(s)${r.fail ? ` · ${r.fail} introuvable(s)` : ''}`;
+      } catch (e) { showError(e.message); st.textContent = ''; }
+      btn.disabled = false;
     };
   }
 
@@ -2018,16 +2332,8 @@ function viewConsole() {
   const unlocked = () => !CONFIG.pinConsole || PIN_OK || (() => { try { return sessionStorage.getItem('ecran:pin') === CONFIG.pinConsole; } catch (e) { return false; } })();
   applyTheme();
   if (!unlocked()) {
-    $('#app').innerHTML = `${headerDeco()}<div class="pin"><div class="kicker">Console DJ</div><h2 class="serif" style="font-weight:500;font-size:34px;margin:8px 0 18px">Code d'accès</h2>
-      <div class="pinwrap"><input class="input masked" id="pin" type="text" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" style="text-align:center;font-size:26px;letter-spacing:.3em;padding-right:44px">
-      <button class="eye" id="eye" type="button" title="Afficher le code">👁️</button></div>
-      <button class="btn primary" id="go" style="width:100%;margin-top:12px">Entrer</button><p id="bad" style="color:#d9605a;min-height:22px"></p></div>`;
-    const ok = () => normPin($('#pin').value) === normPin(CONFIG.pinConsole) || $('#pin').value.trim() === CONFIG.pinConsole;
-    const go = () => { if (ok()) { try { sessionStorage.setItem('ecran:pin', CONFIG.pinConsole); } catch (e) {} PIN_OK = true; viewConsole(); } else $('#bad').textContent = 'Code incorrect — vérifiez avec l\'œil 👁️'; };
-    $('#go').onclick = go; $('#pin').onkeydown = e => { if (e.key === 'Enter') go(); };
-    $('#pin').oninput = () => { $('#bad').textContent = ''; if (ok()) go(); };
-    $('#eye').onclick = () => $('#pin').classList.toggle('masked');
-    $('#pin').focus();
+    pinScreen({ kicker: 'Console DJ', title: 'Code d\'accès', check: v => pinMatches(v, CONFIG.pinConsole),
+      onOk: () => { try { sessionStorage.setItem('ecran:pin', CONFIG.pinConsole); } catch (e) {} PIN_OK = true; viewConsole(); } });
     return;
   }
   let tab = lsGet('ecran:ctab2', 'direct'), conSig = '';
@@ -2036,7 +2342,7 @@ function viewConsole() {
     return c ? `Question ${c.i + 1} / ${c.quiz.qs.length} · ${s.quizPhase === 'q' ? 'les invités répondent' : 'réponse à l\'écran'} · ${s.autoLeft} s` : ''; };
   setInterval(() => {
     const e = document.getElementById('autost'); if (e) e.textContent = autoStep();
-    if (rawMode() === 'quizauto' && tab === 'quiz') { const g = quizSig(); if (g !== conSig) { conSig = g; if (!document.activeElement || !document.activeElement.matches('input,textarea')) render(); } }
+    if (rawMode() === 'quizauto' && tab === 'quiz') { const g = quizSig(); if (g !== conSig) { conSig = g; if (!isActiveInput()) render(); } }
   }, 400);
   const pend = () => live('photos', 'pending').length + live('messages', 'pending').length;
 
@@ -2046,18 +2352,50 @@ function viewConsole() {
     $('#app').innerHTML = `${DEMO ? '<div class="demo-banner">Mode démo — données locales. <a href="#" id="wipe">Vider la démo</a></div>' : ''}${headerDeco()}
       <div class="console">
         <div class="c-top"><div><span class="live">EN DIRECT</span> <span class="kicker" style="margin-left:6px">Console DJ · ${esc(EVENT)}</span><h1>${namesHtml(s.names)}</h1></div>
-          <div class="row"><a class="btn primary" href="${viewUrl('ecran')}" target="_blank" rel="noopener">📺 Ouvrir le grand écran</a><a class="btn" href="${viewUrl('invite')}" target="_blank" rel="noopener">📱 Page invités</a></div></div>
+          <div class="row"><a class="btn primary" id="openscr" href="${viewUrl('ecran')}" target="_blank" rel="noopener">📺 Ouvrir le grand écran</a><a class="btn" href="${viewUrl('invite')}" target="_blank" rel="noopener">📱 Page invités</a></div></div>
         <div class="c-tabs">${[['direct', '🎛️ Direct'], ['photos', '📸 Photos & mots'], ['perso', '🎨 Design & mariés'], ['defis', '🎯 Défis'], ['quiz', '🏆 Quiz'], ['maries', '💍 Espace mariés'], ['qr', '🔗 QR & installation']]
           .map(([k, l]) => `<button class="btn sm ${tab === k ? 'on' : ''}" data-t="${k}">${l}${k === 'photos' && p ? `<span class="n">${p}</span>` : ''}</button>`).join('')}</div>
         <div id="body"></div>
       </div>`;
     $$('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; lsSet('ecran:ctab2', tab); render(); });
+    /* Si la TV est prête, « Ouvrir le grand écran » l'allume directement (pas de fenêtre à déplacer). */
+    $('#openscr').onclick = e => { if (!TV.online()) return; e.preventDefault(); tvOn(); };
     if ($('#wipe')) $('#wipe').onclick = e => { e.preventDefault(); if (confirm('Effacer toutes les données de démo ?')) { store.wipe(); location.reload(); } };
     ({ direct: tabDirect, photos: tabPhotos, defis: tabDefis, quiz: tabQuiz, perso: tabPerso, maries: tabMaries, qr: tabQR }[tab] || tabDirect)();
   }
   const act = async fn => { try { await fn(); await syncOnce(['settings', 'photos', 'messages', 'teams', 'reactions']); render(); } catch (e) { showError(e.message); } };
   const pinNow = (t, id) => act(() => saveSettings({ pinned: t + ':' + id, pinnedAt: Date.now(), mode: ['auto', 'vedette', 'mots', 'mur'].includes(S().mode) ? S().mode : 'auto' })).then(() => toast('À l\'écran dans un instant ✨'));
   const delPhoto = id => act(async () => { await store.write('photos', id, { status: 'del' }, true); await store.remove('photoData', id).catch(() => {}); photoCache.delete(id); });
+  /* ----- TV autonome : état lu toutes les 8 s, bloc mis à jour sans redessiner la page ----- */
+  const tvOn = () => TV.set('on').then(() => { toast('📺 Grand écran affiché sur la TV'); paintTv(); }).catch(e => showError(e.message));
+  function tvBlockHtml() {
+    return `<div class="card" style="margin-top:16px" id="tvcard"><div class="row" style="justify-content:space-between"><h3 class="sec" style="margin:0">📺 TV · Fire TV</h3><span class="tvpill" id="tvpill"><i></i><span></span></span></div>
+        <button class="btn primary tvbig" id="tvbtn"></button>
+        <div class="row" style="justify-content:space-between"><span class="sub" id="tvwhat" style="margin:0"></span><a href="#" id="tvhelp" class="sub" style="margin:0;color:var(--accent);font-weight:700">Comment préparer la TV ?</a></div>
+        <div class="row" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"><span class="sub" style="margin:0">Chromecast :</span>
+          <button class="btn sm" id="castgo">📡 Chromecast</button><button class="btn sm danger" id="caststop">■ Arrêter</button></div></div>`;
+  }
+  function paintTv() {
+    const pill = $('#tvpill'); if (!pill) return;
+    const online = TV.online(), on = TV.showing(), st = TV.state;
+    pill.classList.toggle('on', online); $('span', pill).textContent = online ? 'TV prête' : 'TV non détectée';
+    $('#tvbtn').textContent = on ? '⏸ Mettre en attente' : '📺 Afficher sur la TV';
+    $('#tvwhat').textContent = on ? 'La TV affiche le grand écran de cette soirée.' : st.screen === 'on' && st.event ? `La TV affiche une autre soirée (« ${st.event} »).` : online ? 'La TV est en attente.' : 'Allumez la TV et ouvrez le favori dans Silk.';
+    $('#castgo').style.display = castConnection ? 'none' : ''; $('#caststop').style.display = castConnection ? '' : 'none';
+  }
+  function bindTv() {
+    $('#tvbtn').onclick = () => {
+      if (TV.showing()) return TV.set('off').then(() => { toast('TV en attente'); paintTv(); }).catch(e => showError(e.message));
+      if (!TV.online()) toast('TV pas encore détectée : elle affichera le grand écran dès qu\'elle sera allumée', 4500);
+      tvOn();
+    };
+    $('#tvhelp').onclick = e => { e.preventDefault(); showFireTvHelp(); };
+    $('#castgo').onclick = () => startCast(paintTv);
+    $('#caststop').onclick = () => stopCast(paintTv);
+    paintTv();
+  }
+  TV.read().then(paintTv); setInterval(() => { if (!document.hidden) TV.read().then(paintTv); }, 8000);
+  const resetScores = teams => act(async () => { for (const x of teams) await store.write('teams', x.id, { score: 0 }, true); });
 
   function tabDirect() {
     const s = S();
@@ -2067,7 +2405,7 @@ function viewConsole() {
       ['defi', '🎯', 'Défi photo', 'lance un défi'], ['quiz', '🏆', 'Quiz', 'classement'], ['noir', '🌑', 'Écran noir', 'discours']];
     const nr = REACTS.reduce((a, [f]) => a + (cache.reactions[f] || 0), 0);
     $('#body').innerHTML = `
-      <div class="stat" style="margin-bottom:16px"><div><b>${live('photos').length}</b><small>photos</small></div><div><b>${live('messages').length}</b><small>mots doux</small></div><div><b>${nr}</b><small>réactions</small></div><div><b>${pend()}</b><small>en attente</small></div></div>
+      <div class="stat" style="margin-bottom:16px"><div><b>${live('photos').length}</b><small>photos</small></div><div><b>${live('messages').length}</b><small>mots doux</small></div><div><b id="nreact">${nr}</b><small>réactions</small></div><div><b>${pend()}</b><small>en attente</small></div></div>
       <div class="card" style="margin-bottom:16px"><h3 class="sec">Que montre le grand écran ?</h3><p class="sub">Design actuel : <b>${design().name}</b> · ${design().palettes[paletteKey()].name} — à changer dans « Design & mariés ».</p>
         <div class="modes">${modes.map(([k, e, l, d]) => `<button class="btn ${s.mode === k ? 'on' : ''}" data-m="${k}"><span class="e">${e}</span>${l}<small>${d}</small></button>`).join('')}</div></div>
       <div class="grid2">
@@ -2083,11 +2421,15 @@ function viewConsole() {
           <label class="toggle"><input type="checkbox" id="t-qa" ${s.quizAuto ? 'checked' : ''}> Classement du quiz dans le mode automatique</label>
           <div class="field" style="margin:10px 0 0"><span>Durée d'une image : <b id="sv">${s.slideSec}</b> s</span><input type="range" id="ss" min="4" max="20" value="${s.slideSec}"></div></div>
       </div>
+      <div class="card" style="margin-top:16px"><h3 class="sec" style="margin-top:0">✨ Thème de la soirée</h3>
+        <p class="sub" style="margin:0 0 10px">Affiché en lettres dorées sur le grand écran, la TV et les téléphones des invités. Laissez vide pour ne rien afficher.</p>
+        <div class="row" style="flex-wrap:nowrap"><input class="input" id="evt" maxlength="80" placeholder="ex. Anniversaire de Jacques & Sandrine" value="${esc(eventTitle())}" style="flex:1"><button class="btn primary" id="evtgo">Afficher</button></div></div>
+      ${tvBlockHtml()}
       <div class="card" style="margin-top:16px"><h3 class="sec" style="margin-top:0">📲 Écrans et téléphones</h3>
         <p class="sub" style="margin:0 0 12px">Si un téléphone ou le grand écran semble bloqué ou affiche une ancienne version : ce bouton recharge à distance toutes les pages invités. Sur le grand écran en plein écran, un petit bandeau apparaît : appuyez sur <b>R</b>.</p>
         <button class="btn" id="reloadall">🔄 Mettre à jour tous les écrans et téléphones</button> <span class="sub" style="margin:0 0 0 10px">Version ${APP_VERSION}</span></div>
       <div class="card" style="margin-top:16px;border-color:#e2574c"><h3 class="sec" style="margin-top:0">🌙 Fin de soirée</h3>
-        <p class="sub" style="margin:0 0 12px">Efface du serveur toutes les photos, les mots doux et les équipes de cette soirée, pour libérer l'espace gratuit (1 Go). Les prénoms et le design sont gardés.<br><b>Avant :</b> vérifiez que les photos sont bien dans le dossier de sauvegarde de l'ordinateur du grand écran, et que les mariés ont téléchargé leur ZIP depuis leur espace (onglet « Souvenirs »).</p>
+        <p class="sub" style="margin:0 0 12px">Efface du serveur toutes les photos, les mots doux et les équipes de cette soirée, pour libérer l'espace gratuit (1 Go). Les prénoms, le thème et le design sont gardés.<br><b>Avant :</b> vérifiez que les photos sont bien dans le dossier de sauvegarde de l'ordinateur du grand écran, et que les mariés ont téléchargé leur ZIP depuis leur espace (onglet « Souvenirs »).</p>
         <button class="btn danger" id="endwipe">🗑️ Effacer toutes les photos du serveur</button> <span class="sub" id="wipest" style="margin:0 0 0 10px"></span></div>`;
     $$('[data-m]').forEach(b => b.onclick = () => act(() => saveSettings({ mode: b.dataset.m })));
     $$('[data-pre]').forEach(b => b.onclick = () => { $('#ann').value = b.dataset.pre; });
@@ -2097,9 +2439,15 @@ function viewConsole() {
     tg('#t-mod', 'moderation'); tg('#t-qr', 'showQr'); tg('#t-re', 'reactions'); tg('#t-st', 'showStats'); tg('#t-qa', 'quizAuto');
     $('#ss').oninput = e => $('#sv').textContent = e.target.value;
     $('#ss').onchange = e => act(() => saveSettings({ slideSec: Number(e.target.value) }));
+    const saveTitle = () => {
+      const t = $('#evt').value.trim().slice(0, 80);
+      act(() => saveSettings({ eventTitle: t })).then(() => { toast(t ? 'Thème affiché ✨' : 'Thème retiré'); if (TV.state.event === EVENT) hub.write('meta', 'tv', { title: t }, true, false).catch(() => {}); });
+    };
+    $('#evtgo').onclick = saveTitle; $('#evt').onkeydown = e => { if (e.key === 'Enter') saveTitle(); };
+    bindTv();
     $('#reloadall').onclick = () => act(() => saveSettings({ reloadAt: Date.now(), appVer: APP_VERSION })).then(() => toast('Mise à jour envoyée aux téléphones et au grand écran 📲'));
     $('#endwipe').onclick = async () => {
-      const ph = Object.values(cache.photos).filter(p => p.status !== 'wiped'), ms = Object.values(cache.messages).filter(m => m.status !== 'wiped'), tm = Object.values(cache.teams).filter(x => x.status !== 'del');
+      const ph = Object.values(cache.photos).filter(p => p.status !== 'wiped'), ms = Object.values(cache.messages).filter(m => m.status !== 'wiped'), tm = liveTeams();
       if (!confirm(`Fin de soirée : effacer du serveur ${ph.length} photo(s), ${ms.length} mot(s) doux et ${tm.length} équipe(s) ?
 
 Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservées sur l'ordinateur.`)) return;
@@ -2107,7 +2455,7 @@ Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservée
       const total = ph.length + ms.length + tm.length; let k = 0; const st = () => { const e = $('#wipest'); if (e) e.textContent = `Effacement… ${k} / ${total}`; };
       await act(async () => {
         await saveSettings({ mode: 'accueil', pinned: '', pinnedAt: 0 });
-        for (const p of ph) { await store.remove('photoData', p.id).catch(() => {}); await store.write('photos', p.id, { status: 'wiped' }); photoCache.delete(p.id); k++; st(); }
+        for (const p of ph) { await wipePhoto(p.id); k++; st(); }
         for (const m of ms) { await store.write('messages', m.id, { status: 'wiped' }); k++; st(); }
         for (const x of tm) { await store.write('teams', x.id, { status: 'del', name: '', score: 0 }, true); k++; st(); }
       });
@@ -2145,8 +2493,8 @@ Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservée
     fillThumbs();
     if ($('#purge')) $('#purge').onclick = () => {
       if (!confirm('Avez-vous bien sauvegardé les photos (dossier sur l\'ordinateur ou ZIP) ?\n\nToutes les photos de cet événement seront effacées de la base en ligne. Les mots doux sont conservés.')) return;
-      act(async () => { const list = Object.values(cache.photos).filter(p => p.status !== 'del'); let k = 0;
-        for (const p of list) { await store.write('photos', p.id, { status: 'wiped' }); await store.remove('photoData', p.id).catch(() => {}); photoCache.delete(p.id); toast(`Nettoyage ${++k} / ${list.length}…`, 1200); } }).then(() => toast('Espace libéré ✓'));
+      act(async () => { const list = Object.values(cache.photos).filter(p => p.status !== 'wiped'); let k = 0;
+        for (const p of list) { await wipePhoto(p.id); toast(`Nettoyage ${++k} / ${list.length}…`, 1200); } }).then(() => toast('Espace libéré ✓'));
     };
     if ($('#allok')) $('#allok').onclick = () => act(async () => { for (const d of pp) await store.write('photos', d.id, { status: 'ok' }, true); for (const d of pm) await store.write('messages', d.id, { status: 'ok' }, true); });
     $$('[data-a]').forEach(b => b.onclick = async () => {
@@ -2158,35 +2506,18 @@ Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservée
         case 'delm': return act(() => store.write('messages', id, { status: 'del' }, true));
         case 'pinp': return pinNow('photo', id);
         case 'pinm': return pinNow('message', id);
-        case 'dl': { const src = await photoSrc(id); if (src) { const a = document.createElement('a'); a.href = src; a.download = `${EVENT}-${id}.jpg`; a.click(); } }
+        case 'dl': { const src = await photoSrc(id), p = cache.photos[id]; if (src && p) { const a = document.createElement('a'); a.href = src; a.download = Saver.fileName(p); a.click(); } }
       }
     });
     if ($('#zip')) $('#zip').onclick = async () => {
-      if (!window.JSZip) return showError('Module ZIP indisponible (connexion internet ?)');
-      const btn = $('#zip'); btn.disabled = true; const zip = new JSZip(), list = live('photos'), mots = live('messages');
-      for (let i = 0; i < list.length; i++) { btn.textContent = `Préparation ${i + 1} / ${list.length}…`; const src = await photoSrc(list[i].id); if (!src) continue;
-        zip.file(`${String(i + 1).padStart(3, '0')}${list[i].author ? '-' + list[i].author.replace(/[^\wÀ-ÿ-]+/g, '_') : ''}.jpg`, src.split(',')[1], { base64: true }); }
-      if (mots.length) zip.file('mots-doux.txt', mots.map(m => `« ${m.text} »\n— ${m.author || 'Anonyme'}\n`).join('\n'));
-      const blob = await zip.generateAsync({ type: 'blob' }), a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `souvenirs-${EVENT}.zip`; a.click();
+      const btn = $('#zip'); btn.disabled = true;
+      try { await downloadAllZip((i, n) => { btn.textContent = `Préparation ${i} / ${n}…`; }); } catch (e) { showError(e.message); }
       btn.textContent = '⬇ Tout télécharger (ZIP)'; btn.disabled = false;
     };
   }
-  function designPreview(k) {
-    const d = DESIGNS[k], v = Object.values(d.palettes)[0].v;
-    const deco = { gold: '✦ ◆ ✦', garland: '💡💡💡', leaves: '🌿 🍃 🌿', confetti: '🎉 ✨ 🎈', disco: '🪩 ✨' }[d.amb];
-    return `<div class="pv" style="background:radial-gradient(120% 90% at 50% 0%,${v.bg1},${v.bg2});color:${v.accent}"><span style="font-size:15px;position:absolute;top:8px;letter-spacing:.2em">${deco}</span>
-      <span style="font-family:${d.fonts.d};color:${v.ink};font-size:28px;${k === 'prestige' ? 'text-transform:uppercase;letter-spacing:.08em;font-size:20px' : ''}${k === 'pop' ? `font-weight:700;text-shadow:2px 2px 0 ${v.accent2}` : ''}${k === 'disco' ? `text-shadow:0 0 10px ${v.accent}` : ''}${k === 'boheme' ? 'font-weight:700;text-transform:uppercase' : ''}">Julie <span style="font-family:${d.fonts.s};color:${v.accent}">&amp;</span> Tom</span></div>`;
-  }
   function tabPerso() {
-    const s = S(), dk = designKey(), pk = paletteKey(), d = DESIGNS[dk];
-    // charge les polices de tous les designs pour les aperçus
-    if (!document.getElementById('allfonts')) { const l = document.createElement('link'); l.id = 'allfonts'; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=' + Object.values(DESIGNS).map(x => x.gf).join('&family=') + '&display=swap'; document.head.appendChild(l); }
-    $('#body').innerHTML = `<div class="card" style="margin-bottom:16px"><h3 class="sec">🎨 Style du mariage</h3><p class="sub">Chaque style change tout : polices, décor animé, présentation des photos et des mots doux, page des invités.</p>
-      <div class="designs">${Object.entries(DESIGNS).map(([k, x]) => `<button data-dz="${k}" class="${k === dk ? 'on' : ''}">${designPreview(k)}<div class="tx"><b>${x.name}</b><small><b style="display:inline;font-size:12px;color:var(--accent)">${x.mood}</b> — ${x.desc}</small></div></button>`).join('')}</div></div>
-      <div class="card" style="margin-bottom:16px"><h3 class="sec">Palette « ${d.name} »</h3>
-        <div class="palettes">${Object.entries(d.palettes).map(([k, p]) => `<button data-pal="${k}" class="${k === pk ? 'on' : ''}"><i style="background:linear-gradient(135deg,${p.v.bg1},${p.v.bg2});--dot:${p.v.accent}"></i>${p.name}</button>`).join('')}</div>
-        <div class="row" style="margin-top:14px"><label class="field" style="margin:0;flex:0 0 auto"><span>Couleur du mariage (facultatif)</span><input type="color" id="acc" value="${esc(s.accent || d.palettes[pk].v.accent)}" style="height:46px;width:90px;padding:4px"></label>
-          <button class="btn sm" id="accR">Couleur de la palette</button></div></div>
+    const s = S(); loadAllFonts();
+    $('#body').innerHTML = `${stylePickerHtml('🎨 Style du mariage')}
       <div class="card"><h3 class="sec">💍 Les mariés</h3><div class="grid2">
         <div class="field"><span>Prénoms (ex. Julie &amp; Thomas)</span><input class="input" id="f-names" value="${esc(s.names)}"></div>
         <div class="field"><span>Phrase d'accueil</span><input class="input" id="f-sub" value="${esc(s.subtitle)}"></div>
@@ -2195,10 +2526,7 @@ Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservée
         <div class="field"><span>Libellé du compte à rebours</span><input class="input" id="f-cdl" value="${esc(s.countdownLabel)}"></div>
         <div class="field"><span>Durée des annonces (secondes)</span><input class="input" type="number" min="5" max="120" id="f-as" value="${esc(s.announceSec)}"></div>
       </div><button class="btn primary" id="save">Enregistrer</button></div>`;
-    $$('[data-dz]').forEach(b => b.onclick = () => act(() => saveSettings({ design: b.dataset.dz, palette: Object.keys(DESIGNS[b.dataset.dz].palettes)[0], accent: '' })).then(() => toast('Style « ' + DESIGNS[b.dataset.dz].name + ' » appliqué ✨')));
-    $$('[data-pal]').forEach(b => b.onclick = () => act(() => saveSettings({ design: dk, palette: b.dataset.pal, accent: '' })));
-    $('#acc').onchange = e => act(() => saveSettings({ accent: e.target.value }));
-    $('#accR').onclick = () => act(() => saveSettings({ accent: '' }));
+    bindStylePicker((patch, msg) => act(() => saveSettings(patch)).then(() => msg && toast(msg)));
     $('#save').onclick = () => act(() => saveSettings({ names: $('#f-names').value.trim(), subtitle: $('#f-sub').value.trim(), date: $('#f-date').value,
       countdownTo: $('#f-cd').value, countdownLabel: $('#f-cdl').value.trim(), announceSec: Math.max(5, Math.min(120, Number($('#f-as').value) || 20)) })).then(() => toast('Enregistré ✓'));
   }
@@ -2206,15 +2534,15 @@ Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservée
     $('#body').innerHTML = `<div class="card"><h3 class="sec">🎯 Défis photo</h3><p class="sub">Un défi par ligne (12 maximum). Les invités les voient sur leur téléphone, et le grand écran les lance régulièrement.</p>
       <textarea class="input" id="dz" rows="10" style="font-family:var(--fs);font-size:22px;line-height:1.3">${esc(S().challenges)}</textarea>
       <div class="row" style="margin-top:12px"><button class="btn primary" id="dsave">Enregistrer</button><button class="btn" id="dshow">Lancer un défi à l'écran</button></div></div>`;
-    $('#dsave').onclick = () => act(() => saveSettings({ challenges: $('#dz').value.split('\n').map(x => x.trim()).filter(Boolean).slice(0, 12).join('\n') })).then(() => toast('Défis enregistrés ✓'));
+    $('#dsave').onclick = () => act(() => saveSettings({ challenges: normChallenges($('#dz').value) })).then(() => toast('Défis enregistrés ✓'));
     $('#dshow').onclick = () => act(() => saveSettings({ mode: 'defi' }));
   }
   async function autoQuiz() {
     const c0 = quizCur(); if (!c0 || rawMode() === 'quizauto' && !S().autoDone) return;
     const quiz = c0.quiz;
     if (quiz.who) { toast('« Qui des deux ? » se joue à la main : ce sont les mariés qui donnent la réponse 💗💙'); return; }
-    const tl = Object.values(cache.teams).filter(x => x.status !== 'del');
-    if (tl.some(x => x.score) && confirm('Remettre les scores à zéro avant de lancer le quiz automatique ?')) await act(async () => { for (const x of tl) await store.write('teams', x.id, { score: 0 }, true); });
+    const tl = liveTeams();
+    if (tl.some(x => x.score) && confirm('Remettre les scores à zéro avant de lancer le quiz automatique ?')) await resetScores(tl);
     const sec = Number(S().quizSec) || 20, now = Date.now();
     await act(() => saveSettings({ quizId: quiz.id, quizQ: 0, quizPhase: 'q', quizPick: '', quizSec: sec, autoRev: 10, autoAt: now + 2000, quizRun: now, mode: 'quizauto' }));
     toast('🤖 Quiz automatique lancé !');
@@ -2224,8 +2552,7 @@ Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservée
     act(() => saveSettings(e.autoDone ? { mode: 'quiz' } : { mode: 'quizq', quizQ: e.quizQ, quizPhase: e.quizPhase, quizAt: e.quizAt })).then(() => toast('Mode automatique arrêté : vous reprenez la main'));
   }
   function tabQuiz() {
-    const s = S(), cat = lsGet('ecran:qcat', 'maries'), c = quizCur(), live = s.mode === 'quizq';
-    const t = Object.values(cache.teams).filter(x => x.status !== 'del').sort((a, b) => (b.score || 0) - (a.score || 0));
+    const s = S(), cat = lsGet('ecran:qcat', 'maries'), c = quizCur(), onScreen = s.mode === 'quizq', t = ranking().list;
     let anim = '';
     if (c) {
       const { quiz, i, item } = c, who = !!quiz.who, choices = who ? whoNames() : item[1];
@@ -2240,21 +2567,21 @@ Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservée
         ${!who && item[3] ? `<p class="sub" style="margin:10px 0 0">💡 ${esc(item[3])}</p>` : ''}${who ? '<p class="sub" style="margin:10px 0 0">Les invités votent à main levée, les mariés montrent leur réponse : cliquez sur la bonne.</p>' : ''}
         <div class="row" style="margin-top:14px">
           <button class="btn" id="qprev" ${i === 0 ? 'disabled' : ''}>◀</button>
-          <button class="btn primary" id="qshow">${live && s.quizPhase === 'q' ? '🔄 Relancer le chrono' : '📺 Afficher la question'}</button>
+          <button class="btn primary" id="qshow">${onScreen && s.quizPhase === 'q' ? '🔄 Relancer le chrono' : '📺 Afficher la question'}</button>
           ${who ? choices.map((ch, k) => `<button class="btn" data-pick="${k}">✅ ${esc(ch)}</button>`).join('') : '<button class="btn" id="qrev">💡 Révéler la réponse</button>'}
           <button class="btn" id="qnext" ${i >= quiz.qs.length - 1 ? 'disabled' : ''}>Suivante ▶</button>
           <button class="btn" id="qrank">🏆 Classement</button></div>
         <div class="row" style="margin-top:12px"><span class="sub" style="margin:0">Chrono :</span>${[0, 10, 20, 30, 45].map(x => `<button class="btn sm ${Number(s.quizSec) === x ? 'on' : ''}" data-qt="${x}">${x ? x + ' s' : 'aucun'}</button>`).join('')}
-          <span class="sub" style="margin:0 0 0 auto">${live ? (s.quizPhase === 'a' ? '🟢 Réponse à l\'écran' : '🟢 Question à l\'écran') : '⚪ Pas encore à l\'écran'}</span></div></div>`;
+          <span class="sub" style="margin:0 0 0 auto">${onScreen ? (s.quizPhase === 'a' ? '🟢 Réponse à l\'écran' : '🟢 Question à l\'écran') : '⚪ Pas encore à l\'écran'}</span></div></div>`;
     }
     $('#body').innerHTML = `
-      <div class="card" style="margin-bottom:16px"><h3 class="sec">📚 Bibliothèque de quiz</h3><p class="sub">15 quiz prêts à jouer. La question s'affiche sur le grand écran avec un chrono, les invités rejoignent leur équipe (ou jouent en solo) sur leur téléphone et touchent leur réponse : chaque bonne réponse donne 1 point à leur équipe, automatiquement. Vous pouvez aussi ajouter des points à la main ci-dessous.</p>
+      <div class="card" style="margin-bottom:16px"><h3 class="sec">📚 Bibliothèque de quiz</h3><p class="sub">${QUIZZES.length} quiz prêts à jouer. La question s'affiche sur le grand écran avec un chrono, les invités rejoignent leur équipe (ou jouent en solo) sur leur téléphone et touchent leur réponse : chaque bonne réponse donne 1 point à leur équipe, automatiquement. Vous pouvez aussi ajouter des points à la main ci-dessous.</p>
         <div class="row" style="margin-bottom:12px">${QUIZ_CATS.concat(customQuizzes().length ? [['perso', '💑 Quiz des mariés']] : []).map(([k, l]) => `<button class="btn sm ${cat === k ? 'on' : ''}" data-qc="${k}">${l}</button>`).join('')}</div>
         <div class="qlib">${allQuizzes().filter(q => q.cat === cat).map(q => `<button data-qz="${q.id}" class="${s.quizId === q.id ? 'on' : ''}"><span class="e">${q.emoji}</span><b>${esc(q.title)}</b><small>${esc(q.desc)} · ${q.qs.length} questions</small></button>`).join('')}</div></div>
       ${anim}
       <div class="card"><h3 class="sec">🏆 Équipes & points</h3>
       <div class="row" style="margin-bottom:14px;flex-wrap:nowrap"><input class="input" id="tn" placeholder="Nom de l'équipe (ex. Table des témoins)"><button class="btn primary" id="add">Ajouter</button></div>
-      ${t.length ? t.map(x => `<div class="team"><b>${esc(x.name)}</b><div class="sc">${x.score || 0}</div>
+      ${t.length ? t.map(x => `<div class="team"><b>${esc(x.name)}</b><div class="sc">${x.score}</div>
         <div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-q="-1" data-id="${x.id}">−1</button><button class="btn sm primary" data-q="1" data-id="${x.id}">+1</button><button class="btn sm primary" data-q="2" data-id="${x.id}">+2</button><button class="btn sm primary" data-q="5" data-id="${x.id}">+5</button><button class="btn sm danger" data-qd="${x.id}">✕</button></div></div>`).join('')
         : '<div class="empty">Aucune équipe. Ajoutez les tables ou les équipes.</div>'}
       <div class="row" style="margin-top:16px"><button class="btn primary" id="showq">🏆 Afficher le classement</button><button class="btn" id="rz">🔄 Remettre les scores à zéro</button><button class="btn danger" id="tdel" ${t.length ? '' : 'disabled'}>🗑️ Supprimer toutes les équipes</button></div></div>`;
@@ -2277,7 +2604,7 @@ Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservée
     $$('[data-q]').forEach(b => b.onclick = () => act(() => store.increment('teams', b.dataset.id, 'score', Number(b.dataset.q))));
     $$('[data-qd]').forEach(b => b.onclick = () => act(() => store.write('teams', b.dataset.qd, { status: 'del' }, true)));
     $('#showq').onclick = () => act(() => saveSettings({ mode: 'quiz' }));
-    $('#rz').onclick = () => { if (confirm('Remettre tous les scores à 0 ?')) act(async () => { for (const x of t) await store.write('teams', x.id, { score: 0 }, true); }).then(() => toast('Scores remis à zéro ✓')); };
+    $('#rz').onclick = () => { if (confirm('Remettre tous les scores à 0 ?')) resetScores(t).then(() => toast('Scores remis à zéro ✓')); };
     $('#tdel').onclick = () => { if (confirm('Supprimer toutes les équipes et joueurs solo ?')) act(async () => { for (const x of t) await store.write('teams', x.id, { status: 'del', name: '', score: 0 }, true); }).then(() => toast('Équipes supprimées ✓')); };
   }
   function tabMaries() {
@@ -2327,9 +2654,12 @@ Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservée
   }
 
   render();
-  startSync(['settings', 'photos', 'messages', 'teams', 'reactions'], () => {
-    const ae = document.activeElement;
-    if (ae && ['INPUT', 'TEXTAREA'].includes(ae.tagName) && !['checkbox', 'range', 'color'].includes(ae.type)) return;
+  startSync(['settings', 'photos', 'messages', 'teams', 'reactions'], changed => {
+    if (changed.every(c => c === 'reactions')) {   // juste des ❤️ : on met à jour le compteur, pas toute la page
+      const el = $('#nreact'); if (el) el.textContent = REACTS.reduce((a, [f]) => a + (cache.reactions[f] || 0), 0);
+      return;
+    }
+    if (isActiveInput()) return;
     const y = scrollY; render(); scrollTo(0, y);
   });
 }
@@ -2337,7 +2667,7 @@ Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservée
 /* =====================================================================
    9. ROUTAGE
    ===================================================================== */
-({ ecran: viewScreen, invite: viewGuest, console: viewConsole, maries: viewCouple }[VIEW] || viewHome)();
+({ ecran: viewScreen, invite: viewGuest, console: viewConsole, maries: viewCouple, tv: viewTv }[VIEW] || viewHome)();
 </script>
 </body>
 </html>
