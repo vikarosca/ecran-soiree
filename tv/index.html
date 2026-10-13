@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Écran de soirée — TV</title>
+<!-- Adresse courte pour les TV (Fire TV / Silk, Smart TV) : ouvre l'écran d'attente,
+     que la console DJ allume ensuite avec « Afficher sur la TV ». -->
+<meta http-equiv="refresh" content="0; url=../?v=tv">
+<script>location.replace('../?v=tv' + (location.search.indexOf('demo=1') >= 0 ? '&demo=1' : ''));</script>
+</head>
+<body style="background:#050212;color:#fff;font-family:sans-serif;text-align:center;padding-top:20vh">
+<p>Ouverture de l'écran TV…</p>
+<p><a href="../?v=tv" style="color:#3fd6ff">Touchez ici si rien ne se passe</a></p>
+</body>
+</html>
