@@ -423,6 +423,20 @@ a.btn{text-decoration:none;display:inline-block}
 .gq-me{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin:-4px 0 10px}
 .gq-me button{background:none;border:0;color:var(--accent);font-size:13px;text-decoration:underline;cursor:pointer;padding:0}
 .gq-win{text-align:center;font-family:var(--fs);font-size:30px;color:var(--accent);margin:4px 0 14px;animation:fadeup .6s ease both}
+.slist{display:flex;flex-direction:column;gap:8px}
+.srow{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.srow.next{border-color:var(--accent);box-shadow:0 0 0 2px rgba(var(--glow),.25)}
+.srow.played{opacity:.6}
+.srow .si{flex:1;min-width:0}
+.srow .si b{display:block;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow .si small{display:block;color:var(--muted);font-size:13px}
+.srow .si em{display:block;font-style:normal;font-size:12px;color:var(--accent);margin-top:2px}
+.srow .sv{border:1px solid var(--line);background:var(--card2);color:var(--ink);border-radius:30px;padding:8px 12px;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap}
+.srow .sv.on{background:var(--accent);color:var(--onaccent);border-color:var(--accent)}
+.srow .sv.done{cursor:default;color:var(--muted)}
+.srow .ded{display:block;font-size:13px;color:var(--ink);margin-top:3px}
+.srow .acts2{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+input[type=range],input[type=checkbox]{accent-color:var(--accent)}
 .reactbar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:40px;padding:8px 10px;box-shadow:0 12px 34px var(--shadow);z-index:60}
 .reactbar button{border:0;background:transparent;font-size:28px;width:50px;height:50px;border-radius:50%;cursor:pointer;transition:transform .12s}
 .reactbar button:active{transform:scale(1.35)}
@@ -527,7 +541,7 @@ h3.sec{font-family:var(--fd);font-weight:600;font-size:23px;margin:0 0 12px}
 /* =====================================================================
    1. CONFIGURATION
    ===================================================================== */
-const APP_VERSION = 12;
+const APP_VERSION = 13;
 const CONFIG = {
   firebase: {
     projectId: 'ecran-soiree-udn',
@@ -1228,7 +1242,7 @@ const SYNC_OVERLAP_MS = 5000;   // marge de sécurité entre deux synchros (horl
 function cleanDoc(coll, d) {
   if (!d || !SAFE_ID.test(d.id)) return null;
   if (coll === 'photos') { d.thumb = safeImg(d.thumb); d.likes = num(d.likes); d.ts = num(d.ts); }
-  if (coll === 'messages') d.ts = num(d.ts);
+  if (coll === 'messages') { d.ts = num(d.ts); if (isSong(d)) d.votes = Math.max(1, num(d.votes, 1)); }
   if (coll === 'teams') d.score = num(d.score);
   return d;
 }
@@ -1270,7 +1284,7 @@ function startSync(colls, onChange, ms = CONFIG.pollMs) {
 }
 const DEFAULTS = {
   names: '', subtitle: 'Bienvenue à notre mariage', date: '', countdownTo: '', countdownLabel: 'Ouverture du bal',
-  mode: 'auto', moderation: false, slideSec: 8, showQr: true, showStats: true, reactions: true, quizAuto: false,
+  mode: 'auto', moderation: false, songsOn: true, slideSec: 8, showQr: true, showStats: true, reactions: true, quizAuto: false,
   design: '', palette: '', accent: '', pinned: '', pinnedAt: 0, announce: '', announceAt: 0, announceSec: 20, quizId: '', quizQ: 0, quizPhase: 'q', quizAt: 0, quizSec: 20, quizPick: '', quizRun: 0,
   challenges: "Un selfie avec les mariés\nLa plus belle grimace de la table\nUn toast à l'amour 🥂\nLe pas de danse le plus fou\nVotre table au complet"
 };
@@ -1303,7 +1317,20 @@ const quizSig = () => { const s = S(); return [s.mode, s.quizId, s.quizQ, s.quiz
 function designKey() { const k = S().design; return DESIGNS[k] ? k : 'guinguette'; }
 function design() { return DESIGNS[designKey()]; }
 function paletteKey() { const p = S().palette, d = design(); return d.palettes[p] ? p : Object.keys(d.palettes)[0]; }
-const live = (coll, status = 'ok') => Object.values(cache[coll]).filter(d => d.status === status).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+const live = (coll, status = 'ok') => Object.values(cache[coll]).filter(d => d.status === status && !isSong(d)).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+/* ----- demandes de chansons : rangées dans « messages » (kind:'song') — seule collection ouverte en écriture aux invités.
+   Statuts : new (reçue) · next (à suivre) · played (jouée) · del (refusée). ----- */
+const isSong = d => !!d && d.kind === 'song';
+const songs = (...st) => Object.values(cache.messages).filter(d => isSong(d) && st.includes(d.status));
+const songKey = (t, a) => (String(t || '') + '|' + String(a || '')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9|]+/g, '');
+const songLabel = d => (d.artist ? d.artist + ' – ' : '') + (d.title || '');
+const songSort = (a, b) => (b.votes || 1) - (a.votes || 1) || (a.ts || 0) - (b.ts || 0);
+/* ----- codes secrets : empreinte PBKDF2 (le code en clair n'est plus stocké dans les réglages que lisent les invités) ----- */
+async function codeHash(code) {
+  const enc = new TextEncoder(), k = await crypto.subtle.importKey('raw', enc.encode(normPin(code)), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode('ecran-soiree:' + EVENT), iterations: 60000, hash: 'SHA-256' }, k, 256);
+  return 'h1:' + [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
 const challenges = () => (S().challenges || '').split('\n').map(x => x.trim()).filter(Boolean).slice(0, 12);
 let loadedFonts = '';
 function applyTheme() {
@@ -1372,10 +1399,11 @@ function pinScreen({ kicker, title, sub = '', check, onOk }) {
     <div class="pinwrap"><input class="input masked" id="pin" type="text" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" style="text-align:center;font-size:26px;letter-spacing:.3em;padding-right:44px">
     <button class="eye" id="eye" type="button" title="Afficher le code">👁️</button></div>
     <button class="btn primary" id="go" style="width:100%;margin-top:12px">Entrer</button><p id="bad" style="color:#d9605a;min-height:22px"></p></div>`;
-  const tryIt = () => { const r = check($('#pin').value); if (r) onOk(r); else $('#bad').textContent = 'Code incorrect — vérifiez avec l\'œil 👁️'; };
-  $('#go').onclick = tryIt;
-  $('#pin').onkeydown = e => { if (e.key === 'Enter') tryIt(); };
-  $('#pin').oninput = () => { $('#bad').textContent = ''; const r = check($('#pin').value); if (r) onOk(r); };
+  let done = false;
+  const attempt = async quiet => { const v = $('#pin').value, r = await check(v); if (done || $('#pin').value !== v) return; if (r) { done = true; onOk(r); } else if (!quiet) $('#bad').textContent = 'Code incorrect — vérifiez avec l\'œil 👁️'; };
+  $('#go').onclick = () => attempt(false);
+  $('#pin').onkeydown = e => { if (e.key === 'Enter') attempt(false); };
+  $('#pin').oninput = () => { $('#bad').textContent = ''; if (normPin($('#pin').value).length >= 4) attempt(true); };
   $('#eye').onclick = () => $('#pin').classList.toggle('masked');
   $('#pin').focus();
 }
@@ -1730,7 +1758,7 @@ function viewScreen() {
       <div class="orn"><span></span>◆<span></span></div>
       ${s.date ? `<div class="date">${esc(fmtDate(s.date))}</div>` : ''}
       <div class="cd" id="cd"></div></div>
-      ${qr ? `<div class="bigqr"><div class="q" id="bq"></div><div class="t">Partagez vos photos<br>&amp; vos mots doux<small>scannez avec l'appareil photo</small></div></div>` : ''}</div>`;
+      ${qr ? `<div class="bigqr"><div class="q" id="bq"></div><div class="t">${s.songsOn ? 'Photos, mots doux<br>&amp; vos chansons' : 'Partagez vos photos<br>&amp; vos mots doux'}<small>scannez avec l'appareil photo</small></div></div>` : ''}</div>`;
     if (qr) makeQR($('#bq', el), guestUrl, 400);
     return el;
   }
@@ -1921,7 +1949,10 @@ function viewScreen() {
   let annTimer;
   function checkAnnounce() {
     const s = S(), on = s.announce && s.announceAt && (Date.now() - s.announceAt < (s.announceSec || 20) * 1000 + 5000);
-    $('#annT').textContent = s.announce || ''; $('#ann').classList.toggle('on', !!on); clearTimeout(annTimer);
+    const at = String(s.announce || ''), ded = at.startsWith('🎵');
+    $('#annT').textContent = at; $('#annT').style.fontSize = at.length > 90 ? '4.2vw' : at.length > 55 ? '5.4vw' : at.length > 30 ? '7.5vw' : '';
+    $('#ann .k').textContent = ded ? '🎵 Dédicace 🎵' : '✨ Annonce ✨';
+    $('#ann').classList.toggle('on', !!on); clearTimeout(annTimer);
     if (on) annTimer = setTimeout(() => $('#ann').classList.remove('on'), Math.max(1000, s.announceAt + (s.announceSec || 20) * 1000 - Date.now()));
   }
   let started = false; const known = new Set();
@@ -2010,6 +2041,7 @@ function viewGuest() {
           ${quizLive() ? `<button class="act main" data-go="quiz" style="background:linear-gradient(135deg,var(--accent2),var(--accent))"><span class="e">🎤</span><b>Le quiz est en cours !</b><small>Touchez ici pour jouer</small></button>` : ''}
           <button class="act main" data-go="photo"><span class="e">📸</span><b>Partager une photo</b><small>Elle s'affiche sur le grand écran</small></button>
           ${quizLive() ? '' : `<button class="act" data-go="quiz" style="grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:16px 18px"><span class="e" style="margin:0">🎤</span><span><b>Quiz</b><small>Rejoignez votre équipe et jouez depuis votre téléphone</small></span></button>`}
+          ${S().songsOn ? `<button class="act" data-go="chanson" style="grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:16px 18px"><span class="e" style="margin:0">🎵</span><span><b>Demander une chanson</b><small>Votre DJ reçoit la demande en direct</small></span></button>` : ''}
           <button class="act" data-go="mot"><span class="e">💌</span><b>Mot doux</b><small>Pour les mariés</small></button>
           ${hasDefis ? `<button class="act" data-go="defis"><span class="e">🎯</span><b>Défis photo</b><small>${challenges().length} défis à relever</small></button>` : ''}
           <button class="act" data-go="fil" ${hasDefis ? 'style="grid-column:1/-1"' : ''}><span class="e">🖼️</span><b>Les photos de la soirée</b><small>Regardez, aimez, enregistrez</small></button>
@@ -2049,7 +2081,14 @@ function viewGuest() {
     }
     if (view === 'fil') renderFil();
     if (view === 'quiz') renderQuiz();
+    if (view === 'chanson') renderSongs();
     if (view === 'merci') {
+      if (merciMot === 'song') {
+        shell(`<div class="success"><div class="e">🎵</div><h2>C'est noté${me() ? ', ' + esc(me()) : ''} !</h2>
+          <p style="color:var(--muted)">Votre demande est arrivée sur la console du DJ. Restez près de la piste 😉</p>
+          <div class="row" style="justify-content:center;margin-top:18px"><button class="btn primary" data-go="chanson">🎵 Voir les demandes</button><button class="btn" data-go="home">Accueil</button></div></div>`);
+        merciMot = false; confetti(); return;
+      }
       shell(`<div class="success"><div class="e">${merciMot ? '💌' : '🎉'}</div><h2>Merci ${esc(me())} !</h2>
         <p style="color:var(--muted)">${S().moderation ? 'Votre envoi apparaîtra sur le grand écran dès qu\'il sera validé.' : 'Regardez le grand écran, ça arrive !'}</p>
         <div class="row" style="justify-content:center;margin-top:18px"><button class="btn primary" data-go="photo">📸 Une autre photo</button><button class="btn" data-go="home">Accueil</button></div></div>`);
@@ -2256,6 +2295,62 @@ function viewGuest() {
       if (st.isConnected) { merciMot = true; go('merci'); }
     } catch (e) { st.textContent = 'Oups : ' + e.message; btn.disabled = false; }
   }
+  /* ----- demandes de chansons ----- */
+  const MY_SONGS = 'ecran:songs:' + EVENT, MY_VOTES = 'ecran:svotes:' + EVENT;
+  const mySongs = () => (lsGet(MY_SONGS, '') || '').split(',').filter(Boolean);
+  const myVotes = () => new Set((lsGet(MY_VOTES, '') || '').split(',').filter(Boolean));
+  let songTimer = null, lastSong = 0;
+  async function renderSongs() {
+    if (!S().songsOn) { go('home'); return; }
+    shell(`<button class="back" data-go="home">← Retour</button><h2 class="hand" style="font-size:34px;margin:0 0 4px;color:var(--accent)">Une chanson ? 🎵</h2>
+      <p style="color:var(--muted);margin:0 0 14px">Demandez votre morceau au DJ. S'il est déjà demandé, votez pour lui : les plus demandés passent en priorité !</p>
+      <div class="card"><div class="field"><span>Titre *</span><input class="input" id="sgt" maxlength="70" placeholder="ex. L'Aventurier" autocomplete="off"></div>
+        <div class="field"><span>Artiste</span><input class="input" id="sga" maxlength="50" placeholder="ex. Indochine" autocomplete="off"></div>
+        <div class="field"><span>Une dédicace ? (facultatif)</span><input class="input" id="sgd" maxlength="70" placeholder="ex. Pour les mariés, de la table 4 !"></div>
+        ${me() ? '' : `<div class="field"><span>Votre prénom (facultatif)</span><input class="input" id="nm2" maxlength="40"></div>`}
+        <button class="btn primary" style="width:100%;padding:16px;font-size:17px" id="sgsend">Envoyer au DJ 🎧</button>
+        <div id="st" style="text-align:center;color:var(--muted);margin-top:12px;font-size:14px"></div></div>
+      <div id="sglist" style="margin-top:16px"></div>`);
+    $('#sgsend').onclick = sendSong;
+    $('#sgt').onkeydown = e => { if (e.key === 'Enter') $('#sga').focus(); };
+    drawSongs(); await syncSongs(); drawSongs();
+    clearInterval(songTimer);
+    songTimer = setInterval(async () => { if (view !== 'chanson') { clearInterval(songTimer); return; } if (document.hidden || isActiveInput()) return; await syncSongs(); drawSongs(); }, 15000);
+  }
+  async function syncSongs() { try { await syncOnce(['messages']); } catch (e) { console.warn(e); } }
+  function drawSongs() {
+    const box = $('#sglist'); if (!box) return;
+    const mine = new Set(mySongs()), voted = myVotes(), lbl = { new: '⏳ reçue', next: '⏭️ bientôt !', played: '✅ jouée' };
+    const queue = songs('new', 'next').sort((a, b) => (a.status === 'next' ? 0 : 1) - (b.status === 'next' ? 0 : 1) || songSort(a, b)).slice(0, 25);
+    const played = songs('played').sort((a, b) => (b.mt || 0) - (a.mt || 0)).slice(0, 8);
+    const row = d => `<div class="srow ${d.status}"><div class="si"><b>${esc(d.title)}</b>${d.artist ? `<small>${esc(d.artist)}</small>` : ''}${mine.has(d.id) ? `<em>${lbl[d.status] || ''} · votre demande</em>` : d.status === 'next' ? '<em>⏭️ bientôt !</em>' : ''}</div>
+      ${d.status === 'played' ? '<span class="sv done">✓</span>' : `<button class="sv ${voted.has(d.id) || mine.has(d.id) ? 'on' : ''}" data-v="${d.id}" ${voted.has(d.id) || mine.has(d.id) ? 'disabled' : ''}>👍 ${d.votes || 1}</button>`}</div>`;
+    box.innerHTML = `${queue.length ? `<h3 class="sec" style="margin:0 0 8px">🔥 Déjà demandées</h3><div class="slist">${queue.map(row).join('')}</div>` : '<div class="empty">Aucune demande pour le moment… lancez-vous ! 🎶</div>'}
+      ${played.length ? `<h3 class="sec" style="margin:18px 0 8px">✅ Déjà passées</h3><div class="slist">${played.map(row).join('')}</div>` : ''}`;
+    $$('[data-v]', box).forEach(b => b.onclick = () => {
+      const id = b.dataset.v, d = cache.messages[id]; if (!d) return;
+      const v = myVotes(); v.add(id); lsSet(MY_VOTES, [...v].slice(-60).join(','));
+      d.votes = (d.votes || 1) + 1; drawSongs(); if (navigator.vibrate) navigator.vibrate(12);
+      store.increment('messages', id, 'votes', 1).catch(() => {});
+    });
+  }
+  async function sendSong() {
+    const st = $('#st'), btn = $('#sgsend'), title = ($('#sgt').value || '').trim().slice(0, 70), artist = ($('#sga').value || '').trim().slice(0, 50), dedi = ($('#sgd').value || '').trim().slice(0, 70);
+    if (!title) { st.textContent = 'Indiquez au moins le titre 🙂'; $('#sgt').focus(); return; }
+    const wait = 40000 - (Date.now() - Math.max(lastSong, num(lsGet('ecran:slast:' + EVENT, 0))));
+    if (wait > 0) { st.textContent = `Une demande à la fois 😉 Réessayez dans ${Math.ceil(wait / 1000)} s.`; return; }
+    btn.disabled = true; st.textContent = 'Envoi…';
+    try {
+      const author = takeName(); await syncSongs();
+      const key = songKey(title, artist), dup = songs('new', 'next').find(d => songKey(d.title, d.artist) === key || (!artist && songKey(d.title, '') === songKey(title, '')));
+      let id;
+      if (dup) { id = dup.id; await store.increment('messages', id, 'votes', 1); const v = myVotes(); v.add(id); lsSet(MY_VOTES, [...v].slice(-60).join(',')); }
+      else { id = uid(); await store.write('messages', id, { kind: 'song', ts: Date.now(), author, title, artist, text: dedi, votes: 1, status: 'new' }); }
+      lsSet(MY_SONGS, [...mySongs(), id].slice(-20).join(','));
+      lastSong = Date.now(); lsSet('ecran:slast:' + EVENT, String(lastSong));
+      if (st.isConnected) { merciMot = 'song'; go('merci'); }
+    } catch (e) { st.textContent = 'Oups, envoi impossible : ' + e.message; btn.disabled = false; }
+  }
   let filLoaded = false, filTimer = null;
   async function loadFil(initial) {
     try {
@@ -2309,7 +2404,8 @@ function viewCouple() {
   document.title = 'Espace mariés ✨';
   let tab = lsGet('ecran:ctab-m', 'accueil'), draft = null, photosLoaded = false;
   const okKey = 'ecran:cpl:' + EVENT;
-  const unlocked = () => { const c = String((cache.settings.main || {}).coupleCode || ''); try { const v = sessionStorage.getItem(okKey); return !!v && (v === c || v === 'dj:' + CONFIG.pinConsole); } catch (e) { return false; } };
+  const secret = () => { const m = cache.settings.main || {}; return String(m.coupleHash || m.coupleCode || ''); };   // coupleCode : anciennes soirées (avant v13)
+  const unlocked = () => { const c = secret(); try { const v = sessionStorage.getItem(okKey); return !!v && ((!!c && v === c) || v === 'dj:' + CONFIG.pinConsole); } catch (e) { return false; } };
   /* Enregistre dans les réglages ; renvoie true si c'est passé (le formulaire n'est vidé qu'en cas de succès). */
   const save = async (patch, msg = 'Enregistré ✓') => {
     try { await saveSettings(patch); await syncOnce(['settings']); toast(msg); render(); return true; }
@@ -2317,14 +2413,14 @@ function viewCouple() {
   };
 
   function login() {
-    const code = String((cache.settings.main || {}).coupleCode || '');
-    if (!code) {
+    const m = cache.settings.main || {}, hash = String(m.coupleHash || ''), code = String(m.coupleCode || '');
+    if (!hash && !code) {
       $('#app').innerHTML = `${headerDeco()}<div class="pin"><div class="kicker">Espace mariés</div><h2 class="serif" style="font-weight:500;font-size:34px;margin:8px 0 6px">${namesHtml(S().names)}</h2>
         <p style="color:var(--muted)">Votre espace n'est pas encore ouvert. Votre DJ vous enverra un lien et un code.</p></div>`;
       return;
     }
     pinScreen({ kicker: 'Espace mariés', title: namesHtml(S().names), sub: 'Entrez le code que votre DJ vous a envoyé.',
-      check: v => pinMatches(v, code) ? code : pinMatches(v, CONFIG.pinConsole) ? 'dj:' + CONFIG.pinConsole : null,
+      check: async v => { if (pinMatches(v, CONFIG.pinConsole)) return 'dj:' + CONFIG.pinConsole; if (code && !hash) return pinMatches(v, code) ? code : null; try { return (await codeHash(v)) === hash ? hash : null; } catch (e) { return null; } },
       onOk: ok => { try { sessionStorage.setItem(okKey, ok); } catch (e) {} render(); } });
   }
 
@@ -2472,7 +2568,12 @@ function viewConsole() {
     return;
   }
   let tab = lsGet('ecran:ctab2', 'direct'), conSig = '';
-  syncOnce(['settings']).then(() => { if ((Number((cache.settings.main || {}).appVer) || 0) < APP_VERSION) saveSettings({ appVer: APP_VERSION }).catch(() => {}); }).catch(() => {});
+  syncOnce(['settings']).then(async () => {
+    const m = cache.settings.main || {};
+    if ((Number(m.appVer) || 0) < APP_VERSION) saveSettings({ appVer: APP_VERSION }).catch(() => {});
+    /* v13 : un code mariés encore en clair (lisible par les invités) est remplacé par son empreinte ; le DJ le garde sur cet appareil. */
+    if (m.coupleCode && !m.coupleHash) { try { const h = await codeHash(m.coupleCode); lsSet('ecran:cc:' + EVENT, m.coupleCode); await saveSettings({ coupleHash: h, coupleCode: '' }); } catch (e) {} }
+  }).catch(() => {});
   const autoStep = () => { const s = S(), c = quizCur(); if (!s.isAuto) return ''; if (s.autoDone) return '🏆 Terminé : le classement final et les gagnants sont à l\'écran.';
     return c ? `Question ${c.i + 1} / ${c.quiz.qs.length} · ${s.quizPhase === 'q' ? 'les invités répondent' : 'réponse à l\'écran'} · ${s.autoLeft} s` : ''; };
   setInterval(() => {
@@ -2488,15 +2589,15 @@ function viewConsole() {
       <div class="console">
         <div class="c-top"><div><span class="live">EN DIRECT</span> <span class="kicker" style="margin-left:6px">Console DJ · ${esc(EVENT)}</span><h1>${namesHtml(s.names)}</h1></div>
           <div class="row"><a class="btn primary" id="openscr" href="${viewUrl('ecran')}" target="_blank" rel="noopener">📺 Ouvrir le grand écran</a><a class="btn" href="${viewUrl('invite')}" target="_blank" rel="noopener">📱 Page invités</a></div></div>
-        <div class="c-tabs">${[['direct', '🎛️ Direct'], ['photos', '📸 Photos & mots'], ['perso', '🎨 Design & mariés'], ['defis', '🎯 Défis'], ['quiz', '🏆 Quiz'], ['maries', '💍 Espace mariés'], ['qr', '🔗 QR & installation']]
-          .map(([k, l]) => `<button class="btn sm ${tab === k ? 'on' : ''}" data-t="${k}">${l}${k === 'photos' && p ? `<span class="n">${p}</span>` : ''}</button>`).join('')}</div>
+        <div class="c-tabs">${[['direct', '🎛️ Direct'], ['photos', '📸 Photos & mots'], ['chansons', '🎵 Demandes'], ['perso', '🎨 Design & mariés'], ['defis', '🎯 Défis'], ['quiz', '🏆 Quiz'], ['maries', '💍 Espace mariés'], ['qr', '🔗 QR & installation']]
+          .map(([k, l]) => `<button class="btn sm ${tab === k ? 'on' : ''}" data-t="${k}">${l}${k === 'photos' && p ? `<span class="n">${p}</span>` : ''}${k === 'chansons' && songs('new').length ? `<span class="n">${songs('new').length}</span>` : ''}</button>`).join('')}</div>
         <div id="body"></div>
       </div>`;
     $$('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; lsSet('ecran:ctab2', tab); render(); });
     /* Si la TV est prête, « Ouvrir le grand écran » l'allume directement (pas de fenêtre à déplacer). */
     $('#openscr').onclick = e => { if (!TV.online()) return; e.preventDefault(); tvOn(); };
     if ($('#wipe')) $('#wipe').onclick = e => { e.preventDefault(); if (confirm('Effacer toutes les données de démo ?')) { store.wipe(); location.reload(); } };
-    ({ direct: tabDirect, photos: tabPhotos, defis: tabDefis, quiz: tabQuiz, perso: tabPerso, maries: tabMaries, qr: tabQR }[tab] || tabDirect)();
+    ({ direct: tabDirect, photos: tabPhotos, chansons: tabSongs, defis: tabDefis, quiz: tabQuiz, perso: tabPerso, maries: tabMaries, qr: tabQR }[tab] || tabDirect)();
   }
   const act = async fn => { try { await fn(); await syncOnce(['settings', 'photos', 'messages', 'teams', 'reactions']); render(); } catch (e) { showError(e.message); } };
   const pinNow = (t, id) => act(() => saveSettings({ pinned: t + ':' + id, pinnedAt: Date.now(), mode: ['auto', 'vedette', 'mots', 'mur'].includes(S().mode) ? S().mode : 'auto' })).then(() => toast('À l\'écran dans un instant ✨'));
@@ -2650,6 +2751,35 @@ Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservée
       btn.textContent = '⬇ Tout télécharger (ZIP)'; btn.disabled = false;
     };
   }
+  /* ----- demandes de chansons des invités ----- */
+  function tabSongs() {
+    const s = S(), nxt = songs('next').sort(songSort), nw = songs('new').sort(songSort), pl = songs('played').sort((a, b) => (b.mt || 0) - (a.mt || 0));
+    const row = (d, kind) => `<div class="srow ${d.status}"><div class="si"><b title="Cliquer pour copier" data-cp="${d.id}" style="cursor:copy">${esc(d.title)}</b>${d.artist ? `<small>${esc(d.artist)}</small>` : ''}
+        ${d.text ? `<span class="ded">💬 « ${esc(d.text)} »</span>` : ''}<em>${esc(d.author || 'Anonyme')}${(d.votes || 1) > 1 ? ` · 👍 ${d.votes} demandes` : ''}</em></div>
+      <div class="acts2">${kind === 'played' ? `<button class="btn sm" data-sa="new" data-id="${d.id}" title="Remettre dans la liste">↩</button>`
+        : `${kind === 'new' ? `<button class="btn sm" data-sa="next" data-id="${d.id}">⏭ À suivre</button>` : ''}<button class="btn sm primary" data-sa="played" data-id="${d.id}">✓ Jouée</button>
+           ${d.text ? `<button class="btn sm" data-sa="ded" data-id="${d.id}" title="Afficher la dédicace sur le grand écran">📣 Dédicace</button>` : ''}<button class="btn sm danger" data-sa="del" data-id="${d.id}" title="Refuser">✕</button>`}</div></div>`;
+    $('#body').innerHTML = `
+      <div class="card" style="margin-bottom:16px"><div class="row" style="justify-content:space-between"><h3 class="sec" style="margin:0">🎵 Demandes des invités</h3>
+        <label class="toggle" style="margin:0"><input type="checkbox" id="t-songs" ${s.songsOn ? 'checked' : ''}> Ouvertes aux invités</label></div>
+        <p class="sub" style="margin:8px 0 0">Les invités demandent un morceau depuis leur téléphone et votent 👍 pour ceux déjà demandés : les plus demandés remontent. Cliquez sur un titre pour le copier (à coller dans votre logiciel de mix). « ✓ Jouée » l'indique aux invités.</p>
+        <div class="row" style="margin-top:10px"><button class="btn sm" id="sgcopy" ${nxt.length + nw.length ? '' : 'disabled'}>📋 Copier la liste</button></div></div>
+      ${nxt.length ? `<div class="card" style="margin-bottom:16px;border-color:var(--accent)"><h3 class="sec">⏭ À suivre (${nxt.length})</h3><div class="slist">${nxt.map(d => row(d, 'next')).join('')}</div></div>` : ''}
+      <div class="card" style="margin-bottom:16px"><h3 class="sec">📥 Reçues (${nw.length})</h3>${nw.length ? `<div class="slist">${nw.map(d => row(d, 'new')).join('')}</div>` : `<div class="empty">${s.songsOn ? 'Aucune demande pour le moment.' : 'Les demandes sont fermées : cochez « Ouvertes aux invités ».'}</div>`}</div>
+      ${pl.length ? `<div class="card"><h3 class="sec">✅ Déjà jouées (${pl.length})</h3><div class="slist">${pl.slice(0, 40).map(d => row(d, 'played')).join('')}</div></div>` : ''}`;
+    $('#t-songs').onchange = e => act(() => saveSettings({ songsOn: e.target.checked })).then(() => toast(e.target.checked ? 'Demandes ouvertes 🎵' : 'Demandes fermées'));
+    const copy = t => (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Copié 📋 ' + t.slice(0, 50))).catch(() => prompt('Copiez :', t));
+    $$('[data-cp]').forEach(b => b.onclick = () => { const d = cache.messages[b.dataset.cp]; if (d) copy(songLabel(d)); });
+    $('#sgcopy').onclick = () => copy([...nxt, ...nw].map(d => `${songLabel(d)}${(d.votes || 1) > 1 ? ` (x${d.votes})` : ''}${d.text ? ` — ${d.text}` : ''}`).join('\n'));
+    $$('[data-sa]').forEach(b => b.onclick = () => {
+      const id = b.dataset.id, d = cache.messages[id], a = b.dataset.sa; if (!d) return;
+      if (a === 'ded') {
+        const t = `🎵 ${d.title}${d.author ? ' · de ' + d.author : ''} : « ${d.text} »`.slice(0, 140);
+        return act(() => saveSettings({ announce: t, announceAt: Date.now() })).then(() => toast('Dédicace à l\'écran 📣'));
+      }
+      act(() => store.write('messages', id, { status: a }, true)).then(() => toast({ next: 'Ajoutée à « À suivre » ⏭', played: 'Marquée jouée ✓', del: 'Demande retirée', new: 'Remise dans la liste' }[a]));
+    });
+  }
   function tabPerso() {
     const s = S(); loadAllFonts();
     $('#body').innerHTML = `${stylePickerHtml('🎨 Style du mariage')}
@@ -2743,22 +2873,23 @@ Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservée
     $('#tdel').onclick = () => { if (confirm('Supprimer toutes les équipes et joueurs solo ?')) act(async () => { for (const x of t) await store.write('teams', x.id, { status: 'del', name: '', score: 0 }, true); }).then(() => toast('Équipes supprimées ✓')); };
   }
   function tabMaries() {
-    const s = S(), code = String(s.coupleCode || ''), link = viewUrl('maries'), m = parseJSON(s.music, {}), cq = parseJSON(s.customQuiz, {});
+    const s = S(), ccKey = 'ecran:cc:' + EVENT, isOpen = !!(s.coupleHash || s.coupleCode), code = String(s.coupleCode || (s.coupleHash ? lsGet(ccKey, '') : '')), link = viewUrl('maries'), m = parseJSON(s.music, {}), cq = parseJSON(s.customQuiz, {});
     const msg = `Bonjour ${s.names || ''} !\n\nVoici votre espace mariés pour préparer l'animation de votre soirée :\n${link}\nVotre code : ${code}\n\nVous pourrez y choisir le style de l'écran, écrire vos défis photo et votre propre quiz, m'indiquer vos musiques… puis récupérer toutes les photos de vos invités après la fête.\n\nÀ très vite !\n${CONFIG.brand}`;
     $('#body').innerHTML = `<div class="card" style="margin-bottom:16px"><h3 class="sec" style="margin-top:0">🔑 Accès des mariés</h3>
         <p class="sub">Les mariés préparent eux-mêmes leur soirée (style, défis, quiz, musiques) et récupèrent leurs photos après. Choisissez un code, puis envoyez-leur le message.</p>
         <div class="row" style="flex-wrap:nowrap;max-width:460px"><input class="input" id="cc" maxlength="12" inputmode="numeric" value="${esc(code)}" placeholder="ex. 482913" style="font-size:20px;letter-spacing:.2em;text-align:center"><button class="btn" id="ccgen">🎲 Générer</button><button class="btn primary" id="ccsave">Enregistrer</button></div>
+        ${isOpen && !code ? `<p class="sub" style="margin:14px 0 0">🔒 Un code est enregistré pour ces mariés, mais il a été choisi sur un autre appareil : il n'est plus lisible (protégé). Générez-en un nouveau pour leur renvoyer le message.</p><div class="row" style="margin-top:10px"><a class="btn" href="${link}" target="_blank" rel="noopener">👀 Ouvrir leur espace</a><button class="btn danger" id="ccoff">Fermer l'accès</button></div>` : ''}
         ${code ? `<div class="field" style="margin:16px 0 0"><span>Message à envoyer aux mariés (SMS, WhatsApp, e-mail)</span><textarea class="input" id="ccmsg" rows="9" readonly style="font-size:14px">${esc(msg)}</textarea></div>
-        <div class="row" style="margin-top:10px"><button class="btn primary" id="cccopy">📋 Copier le message</button><a class="btn" href="${link}" target="_blank" rel="noopener">👀 Ouvrir leur espace</a><button class="btn danger" id="ccoff">Fermer l'accès</button></div>` : '<p class="sub" style="margin:12px 0 0">⚪ Espace fermé tant qu\'aucun code n\'est enregistré.</p>'}</div>
+        <div class="row" style="margin-top:10px"><button class="btn primary" id="cccopy">📋 Copier le message</button><a class="btn" href="${link}" target="_blank" rel="noopener">👀 Ouvrir leur espace</a><button class="btn danger" id="ccoff">Fermer l'accès</button></div>` : (isOpen ? '' : '<p class="sub" style="margin:12px 0 0">⚪ Espace fermé tant qu\'aucun code n\'est enregistré.</p>')}</div>
       <div class="grid2"><div class="card"><h3 class="sec" style="margin-top:0">🎵 Leurs musiques</h3>
         <div class="musicv">${MUSIC_FIELDS.filter(([k]) => (m[k] || '').trim()).map(([k, l]) => `<div><b>${l}</b>${esc(m[k])}</div>`).join('') || '<div class="empty">Pas encore rempli.</div>'}</div></div>
         <div class="card"><h3 class="sec" style="margin-top:0">💑 Leur quiz</h3><p class="sub" style="margin:0">${(cq.qs || []).length} question(s) à choix · ${(cq.who || []).length} question(s) « Qui des deux ? »</p>
           ${customQuizzes().length ? `<p class="sub" style="margin:10px 0 0">À lancer depuis l'onglet <b>Quiz</b>, catégorie « 💑 Quiz des mariés ».</p>` : ''}</div></div>`;
     $('#ccgen').onclick = () => { $('#cc').value = String(Math.floor(100000 + Math.random() * 900000)); };
-    $('#ccsave').onclick = () => { const v = $('#cc').value.trim().replace(/\s+/g, ''); if (v.length < 4) { toast('Code trop court : 4 caractères minimum'); return; } act(() => saveSettings({ coupleCode: v })).then(() => toast('Code enregistré ✓')); };
+    $('#ccsave').onclick = () => { const v = $('#cc').value.trim().replace(/\s+/g, ''); if (v.length < 4) { toast('Code trop court : 4 caractères minimum'); return; } act(async () => { const h = await codeHash(v); lsSet(ccKey, v); await saveSettings({ coupleHash: h, coupleCode: '' }); }).then(() => toast('Code enregistré ✓ (protégé)')); };
     $('#cc').onkeydown = e => { if (e.key === 'Enter') $('#ccsave').click(); };
     if ($('#cccopy')) $('#cccopy').onclick = async () => { try { await navigator.clipboard.writeText(msg); toast('Message copié 📋 Collez-le dans un SMS ou un e-mail'); } catch (e) { $('#ccmsg').select(); document.execCommand('copy'); toast('Message copié 📋'); } };
-    if ($('#ccoff')) $('#ccoff').onclick = () => { if (confirm('Fermer l\'accès à l\'espace mariés ?')) act(() => saveSettings({ coupleCode: '' })); };
+    if ($('#ccoff')) $('#ccoff').onclick = () => { if (confirm('Fermer l\'accès à l\'espace mariés ?')) { lsSet(ccKey, ''); act(() => saveSettings({ coupleCode: '', coupleHash: '' })); } };
   }
   function tabQR() {
     const gu = viewUrl('invite'), sc = viewUrl('ecran');
@@ -2776,7 +2907,7 @@ Les photos déjà enregistrées sur l'ordinateur du grand écran sont conservée
       const tmp = document.createElement('div'); makeQR(tmp, gu, 640);
       const cv = tmp.querySelector('canvas'), img = cv ? cv.toDataURL() : '', s = S(), d = design(), v = d.palettes[paletteKey()].v, w = window.open('', '_blank');
       if (!w) return showError('Autorisez les fenêtres pop-up pour imprimer.');
-      const card = `<div class="c"><div class="k">${esc(s.subtitle)}</div><div class="n">${namesHtml(s.names)}</div><img src="${img}"><div class="t">Scannez-moi !</div><div class="dd">Partagez vos photos et vos mots doux<br>sur le grand écran ✨</div></div>`;
+      const card = `<div class="c"><div class="k">${esc(s.subtitle)}</div><div class="n">${namesHtml(s.names)}</div><img src="${img}"><div class="t">Scannez-moi !</div><div class="dd">Partagez vos photos et vos mots doux<br>sur le grand écran ✨${s.songsOn ? '<br>🎵 et demandez vos chansons au DJ' : ''}</div></div>`;
       w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Chevalets QR</title><link href="https://fonts.googleapis.com/css2?family=${d.gf}&display=swap" rel="stylesheet"><style>
         @page{size:A4;margin:10mm}body{margin:0;font-family:${d.fonts.b};color:#2b2420}
         .g{display:grid;grid-template-columns:1fr 1fr;gap:8mm}.c{border:1.5px solid ${v.accent};border-radius:${dk2r()};padding:7mm;text-align:center;height:132mm;display:flex;flex-direction:column;justify-content:center;align-items:center;page-break-inside:avoid;background:#fffdf8}
